@@ -1,6 +1,6 @@
 {
   "name": "idlepokegrid",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Rode ate 4 contas de Idle Poke (idlepoke.com) ao mesmo tempo, em uma janela so / Run up to 4 Idle Poke accounts at once, in a single window",
   "main": "main.js",
   "author": "Nykaze",
@@ -41,11 +41,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico"
@@ -60,6 +64,6 @@
     },
     "portable": {
       "artifactName": "IdlePokeGrid-Portable-${version}.${ext}"
+    }
   }
-}
 }
