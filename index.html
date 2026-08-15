@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<!-- Defesa em profundidade: a interface nao faz rede (fetch/XHR/WS bloqueados), so carrega o jogo nos webviews. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: https://idlepoke.com; font-src 'self' data:; frame-src https://idlepoke.com; child-src https://idlepoke.com; base-uri 'none'; form-action 'none'">
+<title>Idle Poke Grid</title>
+<style>
+  :root {
+    /* cor de destaque do tema (o usuario troca pelo menu; os valores vem do JS) */
+    --ac1: #8b5cf6; --ac2: #3b82f6;
+    --fundo: #0a0d13; --super: #131926; --super2: #161d2b;
+    --borda: #232d3d; --borda2: #2d3a4f;
+    --txt: #e8eef7; --mut: #8b97a9;
+    --verde: #22c55e; --verde-txt: #6ee7a0; --vermelho: #f85149;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--fundo); color: var(--txt);
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; position: relative;
+  }
+  body::before { /* brilho ambiente atras dos paineis, na cor do tema */
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(620px 380px at 12% -8%, color-mix(in srgb, var(--ac1) 16%, transparent), transparent 60%),
+      radial-gradient(700px 420px at 88% -6%, color-mix(in srgb, var(--ac2) 14%, transparent), transparent 60%),
+      radial-gradient(900px 500px at 50% 118%, color-mix(in srgb, var(--verde) 6%, transparent), transparent 60%);
+  }
+  button, input { font-family: inherit; }
+  button {
+    background: var(--super2); color: var(--txt); border: 1px solid var(--borda);
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+    letter-spacing: .2px; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, transform .1s ease, box-shadow .15s ease, color .15s ease, filter .15s ease;
+  }
+  button:hover { background: #1a2230; border-color: var(--borda2); }
+  button:active { transform: translateY(1px); }
+  button.primary {
+    background: linear-gradient(135deg, var(--ac1), var(--ac2));
+    border-color: transparent; color: #fff; font-weight: 700;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--ac1) 40%, transparent), inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  button.primary:hover { filter: brightness(1.1); box-shadow: 0 6px 20px color-mix(in srgb, var(--ac1) 50%, transparent); }
+  button.on {
+    background: #12331f; border-color: var(--verde); color: var(--verde-txt);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--verde) 25%, transparent), 0 3px 12px color-mix(in srgb, var(--verde) 18%, transparent);
+  }
+  button.on:hover { background: #153a24; }
+
+  #topbar {
+    position: relative; z-index: 50; display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; flex-shrink: 0;
+    background: linear-gradient(180deg, #121826, #0f141f);
+    border-bottom: 1px solid #1e2736;
+    box-shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.25);
+  }
+  #topbar .logo { display: flex; align-items: center; gap: 9px; font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; }
+  #topbar .logo img { display: block; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  #topbar .logo .ver {
+    font-size: 10px; font-weight: 500; letter-spacing: .5px; color: #5c6b81;
+    align-self: flex-end; padding: 1px 7px; margin-bottom: 1px;
+    background: #161d29; border: 1px solid var(--borda); border-radius: 99px;
+  }
+  #refBtn { margin-left: 12px; }
+
+  /* Dropdown de opções */
+  #menuWrap { position: relative; }
+  #menu {
+    position: absolute; right: 0; top: calc(100% + 8px);
+    display: none; flex-direction: column; gap: 3px;
+    background: var(--super); border: 1px solid #28324a; border-radius: 12px;
+    padding: 7px; min-width: 184px; z-index: 300;
+    box-shadow: 0 18px 48px rgba(0,0,0,.55), 0 0 0 1px color-mix(in srgb, var(--ac1) 8%, transparent);
+  }
+  #menu.show { display: flex; animation: menuIn .12s ease; }
+  @keyframes menuIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  #menu button { width: 100%; text-align: left; background: transparent; border: none; border-radius: 7px; padding: 7px 10px; }
+  #menu button:hover { background: #1c2536; }
+  #menu button.on { background: #143024; color: var(--verde-txt); box-shadow: none; }
+  #langRow { display: flex; gap: 3px; align-items: center; padding: 3px 2px; }
+  #langRow span { padding: 0 4px; }
+  #menu #langRow button { width: auto; flex: 1; text-align: center; border: 1px solid transparent; padding: 5px 4px; font-size: 11px; }
+  #menu #langRow button.on { border-color: var(--verde); }
+  #themeRow { display: flex; gap: 3px; align-items: center; padding: 3px 2px; }
+  #themeRow span { padding: 0 4px; font-size: 12px; }
+  #menu #themeRow button.swatch { flex: 1; height: 18px; border-radius: 6px; border: 1px solid #28324a; padding: 0; }
+  #menu #themeRow button.swatch.on { box-shadow: 0 0 0 2px var(--ac1), 0 0 10px var(--ac1); border-color: transparent; }
+
+  #grid {
+    flex: 1; display: grid; gap: 8px; padding: 10px;
+    grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr;
+    position: relative; min-height: 0; z-index: 1;
+  }
+  #grid.count-1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+  #grid.count-2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+  #grid.count-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  #grid.count-3 .panel:last-child { grid-column: 1 / -1; }   /* 3o painel ocupa a linha de baixo inteira */
+  #grid.count-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  #grid.one-col { grid-template-columns: 1fr !important; grid-template-rows: none; }
+  #grid.one-col .panel { grid-column: auto !important; }
+  #grid.one-row { grid-template-columns: none !important; grid-template-rows: 1fr !important; grid-auto-flow: column; grid-auto-columns: 1fr; }
+  #grid.one-row .panel { grid-column: auto !important; }
+
+  .panel {
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative;
+    background: linear-gradient(180deg, #151c2a, #121823);
+    border: 1px solid #202a3a; border-radius: 11px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.25);
+    transition: border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  .panel:hover { border-color: var(--borda2); box-shadow: 0 8px 26px rgba(0,0,0,.32); }
+  .panel::before { /* filete da cor da conta na borda superior */
+    content: ""; position: absolute; top: 0; left: 14px; right: 14px; height: 2px; z-index: 3;
+    border-radius: 0 0 4px 4px; opacity: .9;
+    background: linear-gradient(90deg, transparent, var(--acc, var(--ac2)), transparent);
+  }
+  .panel.dragging { opacity: .55; }
+  .panel.drag-over { border-color: var(--ac1); box-shadow: 0 0 0 1px var(--ac1), 0 8px 26px rgba(0,0,0,.32); }
+  .panel.off webview { visibility: hidden; }
+  .panel.expanded {
+    position: absolute; inset: 8px; z-index: 20;
+    box-shadow: 0 0 0 1px var(--acc, var(--ac2)), 0 24px 60px rgba(0,0,0,.6);
+  }
+  .panel-header {
+    display: flex; align-items: center; gap: 8px; padding: 5px 10px; flex-shrink: 0; font-size: 12px;
+    background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(0,0,0,.25);
+    cursor: grab; user-select: none;
+  }
+  .panel-header:active { cursor: grabbing; }
+  /* a cor vem da conta (inline); o estado vira opacidade e anel */
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #8b949e; flex-shrink: 0; opacity: .35; transition: opacity .15s ease, box-shadow .15s ease; }
+  .dot.ok { opacity: 1; box-shadow: 0 0 8px currentColor, 0 0 3px currentColor; }
+  .dot.err { opacity: 1; box-shadow: 0 0 0 2px var(--vermelho); animation: blink 1s ease infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  .dot.off { opacity: .18; }
+  .name { font-weight: 600; cursor: pointer; letter-spacing: .2px; }
+  .status { color: var(--mut); font-size: 11px; margin-right: auto; opacity: .9; }
+  .panel-header button {
+    padding: 2px 9px; font-size: 11px; background: transparent; border: 1px solid transparent;
+    border-radius: 7px; color: #9fb0c4;
+  }
+  .panel-header button:hover { background: rgba(255,255,255,.07); border-color: var(--borda2); color: var(--txt); }
+  .zpct { color: var(--mut); font-size: 11px; min-width: 34px; text-align: center; cursor: pointer; transition: color .15s ease; }
+  .zpct:hover { color: var(--txt); }
+  webview { flex: 1; border: none; background: #000; }
+  /* Proporção do jogo: o canvas dele é fixo em 1600x832 e é esticado por CSS pra preencher o
+     container, com fatores x e y separados. Manter a proporção nativa corrige a distorção,
+     ao custo de sobra escura. O tamanho em px vem do JS: só ele sabe qual lado limita. */
+  body.prop-nat .panel > webview { flex: 0 0 auto; margin: auto; }
+
+  /* Modal Contas */
+  #overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(4,7,12,.62); backdrop-filter: blur(5px);
+    display: none; align-items: center; justify-content: center;
+  }
+  #overlay.show { display: flex; }
+  #modal {
+    background: linear-gradient(180deg, #161e2d, #121828);
+    border: 1px solid #2a3550; border-radius: 14px; padding: 20px 24px; width: 460px; max-width: 92vw;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px color-mix(in srgb, var(--ac1) 10%, transparent);
+    animation: modalIn .15s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+  #modal h2 { font-size: 15px; margin-bottom: 4px; letter-spacing: .3px; }
+  #modal p.hint { font-size: 11px; color: var(--mut); line-height: 1.5; margin-bottom: 14px; }
+  .acc-row { display: grid; grid-template-columns: 74px 1fr 1fr 34px 34px; gap: 6px; margin-bottom: 8px; align-items: center; }
+  .acc-row .acc-del, .acc-row .acc-wipe { padding: 5px 0; background: var(--super2); border-color: var(--borda); font-size: 12px; }
+  .acc-row .acc-del:hover { background: #3b1520; border-color: var(--vermelho); }
+  .acc-row .acc-wipe:hover { background: #1c2540; border-color: var(--ac2); }
+  .acc-row input {
+    background: #0d1320; border: 1px solid #263042; border-radius: 8px; color: var(--txt);
+    padding: 7px 9px; font-size: 12px; width: 100%;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .acc-row input:focus { outline: none; border-color: var(--ac1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac1) 18%, transparent); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #263042; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #35456a; background-clip: content-box; }
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <span class="logo">
+      <img src="Idle Poke Logo.png" width="24" height="24" alt="Idle Poke">
+      IDLE POKE GRID
+      <span class="ver" id="appVer"></span>
+    </span>
+    <button id="loginAll" class="primary">▶ Logar equipe</button>
+    <button id="accounts">👤 Treinadores</button>
+    <button id="reloadAll">⟳ Atualizar tudo</button>
+    <div id="menuWrap">
+      <button id="menuBtn">☰ Opções</button>
+      <div id="menu">
+        <button id="count" title="Quantas contas rodar ao mesmo tempo (1 a 4)">🔢 Painéis: 4</button>
+        <button id="alerts" title="Avisa por notificação quando uma conta cai">🔔 Alertas</button>
+        <button id="muteAll">🔊 Som</button>
+        <button id="eco">⚡ Eco</button>
+        <button id="awake" title="Impede o PC de dormir enquanto farma (a tela ainda pode desligar)">💤 Dormir</button>
+        <button id="minTray" title="O que o botão minimizar faz: esconder na bandeja ou minimizar normal na barra de tarefas">📥 Minimiza p/ bandeja</button>
+        <button id="autoStart" style="display:none" title="Cria um atalho do Idle Poke Grid na pasta Inicializar do Windows pra abrir junto com o sistema">🚀 Abrir com o Windows</button>
+        <button id="bkExp" title="Salva um arquivo com todas as configurações (senhas ficam fora)">💾 Exportar config</button>
+        <button id="bkImp" title="Restaura configurações de um arquivo exportado">📂 Importar config</button>
+        <button id="layout">▦ Grade</button>
+        <button id="propNat" title="Mantém a proporção original do jogo, sem esticar a imagem (sobra fundo escuro quando o painel não bate com a proporção)">🖼 Proporção original</button>
+        <div id="themeRow" title="Cor de destaque do app"><span>🎨</span><button class="swatch" data-tema="violeta" title="Violeta"></button><button class="swatch" data-tema="azul" title="Azul"></button><button class="swatch" data-tema="verde" title="Verde"></button><button class="swatch" data-tema="rosa" title="Rosa"></button><button class="swatch" data-tema="ambar" title="Âmbar"></button></div>
+        <div id="langRow" title="Idioma / Language / Idioma"><span>🌐</span><button data-lang="pt">PT</button><button data-lang="en">EN</button><button data-lang="es">ES</button></div>
+        <button id="errlogBtn" title="Abre o relatório de erros. Se o app travar ou fechar sozinho, envie esse arquivo pro suporte.">🐞 Erros</button>
+      </div>
+    </div>
+    <button id="refBtn" title="Referral do criador, copie se quiser ajudar :)">🔗</button>
+  </div>
+  <div id="grid"></div>
+
+  <div id="overlay">
+    <div id="modal">
+      <h2>Treinadores salvos</h2>
+      <p class="hint">Preencha e-mail/usuário e senha de cada painel. As senhas ficam criptografadas neste PC. "Logar equipe" entra automaticamente onde houver dados, e se a sessão cair o painel loga sozinho.</p>
+      <div id="accRows"></div>
+      <div class="modal-actions">
+        <button id="accCancel">Cancelar</button>
+        <button id="accSave" class="primary">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Relatorio de erros: qualquer erro de JS da interface vai pro arquivo (via main.js)
+  window.addEventListener('error', (e) => { try { window.pokeAPI.logError('interface', ((e.error && e.error.stack) || e.message || '?') + (e.filename ? ' @' + e.filename.split('/').pop() + ':' + e.lineno : '')); } catch {} });
+  window.addEventListener('unhandledrejection', (e) => { try { window.pokeAPI.logError('interface-promise', (e.reason && e.reason.stack) || String(e.reason)); } catch {} });
+
+  // Guarda-chuva do armazenamento local: nenhuma escrita pode derrubar a interface.
+  function lsSet(k, v) {
+    try { localStorage.setItem(k, v); return true; }
+    catch (e) {
+      try { window.pokeAPI && window.pokeAPI.logError && window.pokeAPI.logError('storage', 'sem espaco para ' + k); } catch {}
+      return false;
+    }
+  }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch {} }
+
+  const HOME_URL  = 'https://idlepoke.com'; // link do referral (botao de copiar)
+  const LOGIN_URL = 'https://idlepoke.com/login';
+  const START_URL = LOGIN_URL; // abre na tela de login; o auto-login entra sozinho
+  const grid = document.getElementById('grid');
+
+  let accounts = [];
+  const webviews = [];
+  const off = [false, false, false, false];
+  const online = [false, false, false, false]; // estado pra badge da bandeja
+  const lastLogin = [0, 0, 0, 0]; // cooldown do auto-login por painel (evita ressubmeter em loop)
+  let count = Math.min(4, Math.max(1, +lsGet('count') || 4)); // quantos paineis rodar (1 a 4)
+  let muted = lsGet('muted') === '1';
+  let ordem = (() => { try { const o = JSON.parse(lsGet('ordem') || '[]'); return Array.isArray(o) ? o : []; } catch { return []; } })();
+
+  // ----- Idioma (interface + jogo) -----
+  const I18N = {
+    pt: {
+      loginAll:'▶ Logar equipe', accounts:'👤 Treinadores', reloadAll:'⟳ Atualizar tudo', layout:'▦ Grade', layoutCol:'▤ Uma coluna', layoutRow:'▥ Uma linha', layoutTitle:'Como os painéis se organizam. Clique pra alternar: grade, uma coluna (empilhado) ou uma linha (lado a lado).', propOn:'🖼 Proporção original', propOff:'🖼 Esticar na tela', propTitle:'Mantém a proporção original do jogo, sem esticar a imagem. Sobra fundo escuro quando o painel não bate com a proporção; desligado, a imagem preenche tudo mas distorce.', asOn:'🚀 Abre com o Windows', asOff:'🚀 Abrir com o Windows', asTitle:'Cria um atalho do Idle Poke Grid na pasta Inicializar do Windows, o mesmo lugar onde você colocaria um atalho à mão. Não mexe no registro e você pode remover pelo Win+R > shell:startup.',
+      sound:'🔊 Som', muted:'🔇 Mudo', eco:'⚡ Eco', ecoOff:'⚡ Eco off', sleep:'💤 Dormir', awake:'☕ Acordado', awakeTitle:'Impede o PC de dormir enquanto farma (a tela ainda pode desligar)',
+      optionsBtn:'☰ Opções', errlog:'🐞 Erros', errlogTitle:'Abre o relatório de erros. Se o app travar ou fechar sozinho, envie esse arquivo pro suporte.',
+      alerts:'🔔 Alertas', alertsTitle:'Avisa por notificação quando uma conta cai', msgDown:'caiu', count:'🔢 Painéis',
+      refTitle:'Referral do criador, copie se quiser ajudar :)', refCopied:'✓ Copiado!',
+      stLoading:'carregando…', stOnline:'online', stError:'erro', stOff:'desligada', trainer:'Treinador',
+      tZoomOut:'Diminuir zoom', tZoomIn:'Aumentar zoom', tReload:'Recarregar', tExpand:'Expandir (Ctrl+número)', tZoomPct:'Zoom atual (clique volta pra 100%)', tRename:'Clique duplo para renomear', tDrag:'Arraste a barra do painel para trocar de lugar', promptRename:'Nome do treinador:',
+      mH2:'Treinadores salvos', mHint:'Preencha e-mail/usuário e senha de cada painel. As senhas ficam criptografadas neste PC. "Logar equipe" entra automaticamente onde houver dados, e se a sessão cair o painel loga sozinho.', mName:'Nome', mEmail:'E-mail ou usuário', mPass:'Senha', mCancel:'Cancelar', mSave:'Salvar',
+      accClear:'Limpar esta conta', accWipe:'Limpar os dados do jogo desta conta (cookies e cache). Use se a conta bugou. A senha salva fica.', accWipeConfirm:'Limpar os dados do jogo da conta {n}?\nResolve conta bugada (mapa, filtros, pokémon sumidos). A senha salva não é apagada; a conta desloga e loga de novo.', accWipeOk:'Dados limpos. A conta vai recarregar do zero.', accWipeErr:'Não deu pra limpar. Tente fechar e abrir o app.',
+      minTrayOn:'📥 Minimiza p/ bandeja', minTrayOff:'📥 Minimiza normal', minTrayTitle:'O que o botão minimizar faz: esconder na bandeja (ícone perto do relógio) ou minimizar normal na barra de tarefas',
+      bkExp:'💾 Exportar config', bkImp:'📂 Importar config', bkExpTitle:'Salva um arquivo com todas as configurações (senhas ficam fora)', bkImpTitle:'Restaura configurações e histórico de um arquivo exportado', bkConfirm:'Substituir as configurações atuais pelas do arquivo? O app vai recarregar. (Senhas não são afetadas.)', bkBad:'Arquivo inválido.'
+    },
+    en: {
+      loginAll:'▶ Log in all', accounts:'👤 Accounts', reloadAll:'⟳ Reload all', layout:'▦ Grid', layoutCol:'▤ Single column', layoutRow:'▥ Single row', layoutTitle:'How the panels are arranged. Click to cycle: grid, single column (stacked) or single row (side by side).', propOn:'🖼 Original aspect', propOff:'🖼 Stretch to fill', propTitle:'Keeps the game original aspect ratio instead of stretching the image. Dark bars appear when the panel does not match the ratio; turned off, the image fills everything but gets distorted.', asOn:'🚀 Opens with Windows', asOff:'🚀 Open with Windows', asTitle:'Creates an Idle Poke Grid shortcut in the Windows Startup folder, the same place you would put one by hand. It does not touch the registry and you can remove it via Win+R > shell:startup.',
+      sound:'🔊 Sound', muted:'🔇 Muted', eco:'⚡ Eco', ecoOff:'⚡ Eco off', sleep:'💤 Sleep', awake:'☕ Awake', awakeTitle:'Keeps the PC awake while farming (the screen can still turn off)',
+      optionsBtn:'☰ Options', errlog:'🐞 Errors', errlogTitle:'Opens the error report. If the app freezes or closes on its own, send this file to support.',
+      alerts:'🔔 Alerts', alertsTitle:'Notifies you when an account drops', msgDown:'disconnected', count:'🔢 Panels',
+      refTitle:"Creator's referral, copy it if you want to help :)", refCopied:'✓ Copied!',
+      stLoading:'loading…', stOnline:'online', stError:'error', stOff:'off', trainer:'Trainer',
+      tZoomOut:'Zoom out', tZoomIn:'Zoom in', tReload:'Reload', tExpand:'Expand (Ctrl+number)', tZoomPct:'Current zoom (click resets to 100%)', tRename:'Double-click to rename', tDrag:'Drag the panel bar to reorder', promptRename:'Trainer name:',
+      mH2:'Saved accounts', mHint:'Fill in the e-mail/username and password for each panel. Passwords are encrypted on this PC. "Log in all" signs in automatically where data exists, and if the session drops the panel logs in by itself.', mName:'Name', mEmail:'E-mail or username', mPass:'Password', mCancel:'Cancel', mSave:'Save',
+      accClear:'Clear this account', accWipe:'Clear this account game data (cookies and cache). Use it if the account glitched. Saved password stays.', accWipeConfirm:'Clear game data for account {n}?\nFixes a glitched account. The saved password is kept; the account logs out and back in.', accWipeOk:'Data cleared. The account will reload from scratch.', accWipeErr:'Could not clear. Try restarting the app.',
+      minTrayOn:'📥 Minimize to tray', minTrayOff:'📥 Minimize normally', minTrayTitle:'What the minimize button does: hide to the tray (icon near the clock) or minimize normally to the taskbar',
+      bkExp:'💾 Export config', bkImp:'📂 Import config', bkExpTitle:'Saves a file with all settings and history (passwords stay out)', bkImpTitle:'Restores settings and history from an exported file', bkConfirm:'Replace the current settings with the file? The app will reload. (Passwords are not affected.)', bkBad:'Invalid file.'
+    },
+    es: {
+      loginAll:'▶ Iniciar equipo', accounts:'👤 Entrenadores', reloadAll:'⟳ Recargar todo', layout:'▦ Cuadrícula', layoutCol:'▤ Una columna', layoutRow:'▥ Una fila', layoutTitle:'Cómo se organizan los paneles. Clic para alternar: cuadrícula, una columna (apilado) o una fila (lado a lado).', propOn:'🖼 Proporción original', propOff:'🖼 Estirar en pantalla', propTitle:'Mantiene la proporción original del juego, sin estirar la imagen. Queda fondo oscuro cuando el panel no coincide con la proporción; apagado, la imagen llena todo pero se distorsiona.', asOn:'🚀 Abre con Windows', asOff:'🚀 Abrir con Windows', asTitle:'Crea un acceso directo de Idle Poke Grid en la carpeta Inicio de Windows, el mismo lugar donde lo pondrías a mano. No toca el registro y puedes quitarlo con Win+R > shell:startup.',
+      sound:'🔊 Sonido', muted:'🔇 Silencio', eco:'⚡ Eco', ecoOff:'⚡ Eco off', sleep:'💤 Dormir', awake:'☕ Despierto', awakeTitle:'Evita que el PC se duerma mientras farmea (la pantalla aún puede apagarse)',
+      optionsBtn:'☰ Opciones', errlog:'🐞 Errores', errlogTitle:'Abre el informe de errores. Si la app se congela o se cierra sola, envía este archivo al soporte.',
+      alerts:'🔔 Alertas', alertsTitle:'Avisa con notificación cuando una cuenta se cae', msgDown:'se desconectó', count:'🔢 Paneles',
+      refTitle:'Referral del creador, cópialo si quieres ayudar :)', refCopied:'✓ ¡Copiado!',
+      stLoading:'cargando…', stOnline:'online', stError:'error', stOff:'apagada', trainer:'Entrenador',
+      tZoomOut:'Alejar zoom', tZoomIn:'Acercar zoom', tReload:'Recargar', tExpand:'Expandir (Ctrl+número)', tZoomPct:'Zoom actual (clic vuelve a 100%)', tRename:'Doble clic para renombrar', tDrag:'Arrastra la barra del panel para reordenar', promptRename:'Nombre del entrenador:',
+      mH2:'Entrenadores guardados', mHint:'Completa el e-mail/usuario y la contraseña de cada panel. Las contraseñas quedan cifradas en este PC. "Iniciar equipo" entra automáticamente donde haya datos, y si la sesión se cae el panel entra solo.', mName:'Nombre', mEmail:'E-mail o usuario', mPass:'Contraseña', mCancel:'Cancelar', mSave:'Guardar',
+      accClear:'Limpiar esta cuenta', accWipe:'Limpia los datos del juego de esta cuenta (cookies y caché). Úsalo si la cuenta se bugueó. La contraseña guardada queda.', accWipeConfirm:'¿Limpiar los datos del juego de la cuenta {n}?\nArregla una cuenta bugueada. La contraseña guardada no se borra; la cuenta sale y vuelve a entrar.', accWipeOk:'Datos limpios. La cuenta recargará desde cero.', accWipeErr:'No se pudo limpiar. Prueba reiniciar la app.',
+      minTrayOn:'📥 Minimizar a la bandeja', minTrayOff:'📥 Minimizar normal', minTrayTitle:'Qué hace el botón minimizar: esconder en la bandeja (icono junto al reloj) o minimizar normal a la barra de tareas',
+      bkExp:'💾 Exportar config', bkImp:'📂 Importar config', bkExpTitle:'Guarda un archivo con todas las configuraciones y el historial (las contraseñas quedan fuera)', bkImpTitle:'Restaura configuraciones e historial desde un archivo exportado', bkConfirm:'¿Reemplazar las configuraciones actuales por las del archivo? La app se recargará. (Las contraseñas no se ven afectadas.)', bkBad:'Archivo inválido.'
+    }
+  };
+  let lang = ['en', 'es'].includes(lsGet('lang')) ? lsGet('lang') : 'pt';
+  const t = (k) => (I18N[lang][k] != null ? I18N[lang][k] : I18N.pt[k]);
+  const defName = (i) => t('trainer') + ' ' + (i + 1);
+
+  const blank = () => ({ name: '', email: '', senha: '' });
+  function normalize(arr) {
+    const out = [];
+    for (let i = 0; i < 4; i++) out.push(Object.assign(blank(), arr && arr[i]));
+    return out;
+  }
+  const ACOR = ['#c07bf5', '#3987e5', '#1baf7a', '#eda100']; // cor de cada conta (1=violeta)
+
+  async function load() { try { accounts = normalize(await window.pokeAPI.loadCreds()); } catch { accounts = normalize([]); } }
+  async function save() { try { await window.pokeAPI.saveCreds(accounts); } catch {} }
+
+  // ----- Tema: cor de destaque do app (presets no menu) -----
+  const TEMAS = { violeta: ['#8b5cf6', '#3b82f6'], azul: ['#0ea5e9', '#2563eb'], verde: ['#22c55e', '#14b8a6'], rosa: ['#ec4899', '#a855f7'], ambar: ['#f59e0b', '#ef4444'] };
+  let tema = lsGet('tema'); if (!TEMAS[tema]) tema = 'violeta';
+  const themeBtns = Array.from(document.querySelectorAll('#themeRow .swatch'));
+  function applyTema() {
+    const [a2, c2] = TEMAS[tema];
+    const raiz = document.documentElement.style;
+    raiz.setProperty('--ac1', a2); raiz.setProperty('--ac2', c2);
+    themeBtns.forEach(b => b.classList.toggle('on', b.dataset.tema === tema));
+    lsSet('tema', tema);
+  }
+  themeBtns.forEach(b => {
+    const [a2, c2] = TEMAS[b.dataset.tema];
+    b.style.background = 'linear-gradient(135deg,' + a2 + ',' + c2 + ')';
+    b.onclick = () => { tema = b.dataset.tema; applyTema(); };
+  });
+
+  // ----- Modo Eco: limita o requestAnimationFrame dos jogos (idle nao precisa de 60 fps) -----
+  const ecoScript = (fps) => `(() => {
+    if (!window.__eco2) {
+      window.__eco2 = { raf: window.requestAnimationFrame.bind(window), last: 0, fps: 0 };
+      window.requestAnimationFrame = (cb) => {
+        const s = window.__eco2;
+        if (!s.fps) return s.raf(cb);
+        const espera = Math.max(0, (1000 / s.fps) - (performance.now() - s.last));
+        return setTimeout(() => { s.last = performance.now(); s.raf(cb); }, espera);
+      };
+    }
+    window.__eco2.fps = ${fps};
+  })()`;
+
+  // ----- Tela de login: rola pra baixo pra deixar o captcha e o "Entrar" clicaveis -----
+  // Roda no maximo 2 vezes: a 2a cobre o deslocamento do layout quando o captcha carrega.
+  const scrollLoginScript = `(() => {
+    if (window.__rolou) return; window.__rolou = 1;
+    const achaBotao = () => {
+      const bs = [...document.querySelectorAll('button')];
+      return bs.find(x => x.type === 'submit') ||
+        bs.find(x => /auth-imgbtn/.test(x.className)) ||
+        bs.find(x => /(entrar|login|log in|sign in|iniciar sesión|acceder|entra)/i.test((x.textContent || '').toLowerCase()));
+    };
+    let quantas = 0, voltas = 0;
+    const id = setInterval(() => {
+      voltas++;
+      const alvo = achaBotao() || [...document.querySelectorAll('input')].pop();
+      if (alvo) { alvo.scrollIntoView({ block: 'center' }); quantas++; }
+      if (quantas >= 2 || voltas > 16) clearInterval(id);
+    }, 500);
+  })()`;
+
+  // ----- Bandeja: a interface desenha o icone (logo + badge de contas fora do ar) -----
+  const canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 32;
+  const cx = canvas.getContext('2d');
+  const imgTray = new Image();
+  imgTray.src = 'tray.png';
+  let badgeTimer = null;
+  function atualizaBadge() {
+    const caidas = webviews.reduce((n, _w, i) => (off[i] ? n : online[i] === false ? n + 1 : n), 0);
+    clearTimeout(badgeTimer);
+    badgeTimer = setTimeout(() => {
+      try {
+        if (!window.pokeAPI || !pokeAPI.trayUpdate) return;
+        cx.clearRect(0, 0, 32, 32);
+        if (imgTray.complete && imgTray.naturalWidth) cx.drawImage(imgTray, 0, 0, 32, 32);
+        if (caidas > 0) {
+          cx.beginPath(); cx.arc(24, 24, 9, 0, Math.PI * 2); cx.fillStyle = '#f85149'; cx.fill();
+          cx.strokeStyle = '#ffffff'; cx.lineWidth = 2; cx.stroke();
+          cx.fillStyle = '#ffffff'; cx.font = 'bold 10px "Segoe UI", sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+          cx.fillText(caidas > 9 ? '!' : String(caidas), 24, 24);
+        }
+        const tooltip = caidas > 0
+          ? (lang === 'pt' ? 'Idle Poke Grid · ' + caidas + ' conta(s) fora do ar' : lang === 'es' ? 'Idle Poke Grid · ' + caidas + ' cuenta(s) caída(s)' : 'Idle Poke Grid · ' + caidas + ' account(s) down')
+          : 'Idle Poke Grid';
+        pokeAPI.trayUpdate(canvas.toDataURL('image/png'), tooltip).catch(() => {});
+      } catch {}
+    }, 250);
+  }
+  imgTray.onload = atualizaBadge;
+
+  function criarPainel(i) {
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.dataset.i = i;
+    panel.innerHTML = `
+      <div class="panel-header">
+        <span class="dot"></span>
+        <span class="name"></span>
+        <span class="status"></span>
+        <button class="zo">−</button>
+        <span class="zpct"></span>
+        <button class="zi">+</button>
+        <button class="reload">⟳</button>
+        <button class="expand">⛶</button>
+      </div>`;
+    const wv = document.createElement('webview');
+    // sem isto o Chromium estrangula (e depois congela) a pagina em segundo plano: com o app
+    // minimizado o jogo parava no meio do combate ate alguem voltar ao PC
+    wv.setAttribute('webpreferences', 'backgroundThrottling=no');
+    wv.partition = 'persist:conta' + (i + 1);
+    wv.src = START_URL;
+    panel.appendChild(wv);
+    grid.appendChild(panel);
+    webviews[i] = wv;
+
+    const dot = panel.querySelector('.dot');
+    const status = panel.querySelector('.status');
+    const nameEl = panel.querySelector('.name');
+    const header = panel.querySelector('.panel-header');
+    nameEl.textContent = accounts[i].name || defName(i);
+    header.title = t('tDrag');
+
+    dot.style.background = dot.style.color = ACOR[i] || '#8b949e'; // cor da conta (o color alimenta o brilho quando online)
+    panel.style.setProperty('--acc', ACOR[i] || '#4aa8ff'); // mesma cor alimenta o filete da borda do painel
+
+    // ----- Reordenar paineis: arrasta o cabeçalho -----
+    header.draggable = true;
+    header.ondragstart = (e) => {
+      e.dataTransfer.setData('text/plain', String(i));
+      e.dataTransfer.effectAllowed = 'move';
+      panel.classList.add('dragging');
+    };
+    header.ondragend = () => {
+      panel.classList.remove('dragging');
+      grid.querySelectorAll('.panel.drag-over').forEach(p => p.classList.remove('drag-over'));
+    };
+    grid.ondragover = (e) => {
+      e.preventDefault();
+      const alvo = e.target.closest('.panel');
+      grid.querySelectorAll('.panel.drag-over').forEach(p => p.classList.remove('drag-over'));
+      if (alvo && alvo !== panel) alvo.classList.add('drag-over');
+    };
+    grid.ondrop = (e) => {
+      e.preventDefault();
+      grid.querySelectorAll('.panel.drag-over').forEach(p => p.classList.remove('drag-over'));
+      const alvo = e.target.closest('.panel');
+      if (!alvo) return;
+      const de = +e.dataTransfer.getData('text/plain');
+      const para = +alvo.dataset.i;
+      if (de !== para) movePainel(de, para);
+    };
+
+    let falhou = false; // ultima carga falhou? (evita o did-stop-loading apagar o estado de erro)
+    wv.addEventListener('did-start-loading', () => { if (!off[i]) { falhou = false; dot.className = 'dot'; status.textContent = t('stLoading'); } });
+    // o did-stop-loading sempre fecha o par do did-start-loading. Sem ele, navegacao interna da
+    // SPA do jogo (que nao redispara o dom-ready) deixava o painel preso em "carregando...".
+    wv.addEventListener('did-stop-loading', () => { if (!off[i] && !falhou) { dot.className = 'dot ok'; status.textContent = t('stOnline'); online[i] = true; atualizaBadge(); } });
+    let fails = 0, alertedDown = false; // watchdog: falhas de carga do painel e se ja avisou a queda
+    let zoom = +(lsGet('zoom' + i) || 1); if (!Number.isFinite(zoom) || zoom < 0.5 || zoom > 2) zoom = 1;
+    const zpct = panel.querySelector('.zpct');
+    const setZoom = (z) => {
+      zoom = Math.min(2, Math.max(0.5, Math.round(z * 10) / 10));
+      try { wv.setZoomFactor(zoom); } catch {}
+      lsSet('zoom' + i, zoom);
+      zpct.textContent = Math.round(zoom * 100) + '%';
+    };
+    zpct.textContent = Math.round(zoom * 100) + '%';
+    zpct.onclick = () => setZoom(1);
+    panel.querySelector('.zi').onclick = () => setZoom(zoom + 0.1);
+    panel.querySelector('.zo').onclick = () => setZoom(zoom - 0.1);
+
+    wv.addEventListener('dom-ready', () => {
+      if (!off[i]) { dot.className = 'dot ok'; status.textContent = t('stOnline'); fails = 0; alertedDown = false; online[i] = true; atualizaBadge(); } // carregou: zera o watchdog
+      try {
+        wv.setAudioMuted(muted); wv.setZoomFactor(zoom);
+        wv.executeJavaScript(ecoScript(eco ? 15 : 0)).catch(() => {});
+        // jogo congelado com pagina viva: WebGL perdeu o contexto e nao restaurou em 4s -> recarrega
+        wv.executeJavaScript("(()=>{if(window.__pgGlWd)return;window.__pgGlWd=1;let tm;document.addEventListener('webglcontextlost',()=>{clearTimeout(tm);tm=setTimeout(()=>location.reload(),4000);},true);document.addEventListener('webglcontextrestored',()=>clearTimeout(tm),true);})()").catch(() => {});
+        // so na tela de login, pra nao rodar a toa dentro do jogo
+        if ((wv.getURL() || '').startsWith(LOGIN_URL)) wv.executeJavaScript(scrollLoginScript).catch(() => {});
+        wv.executeJavaScript(`localStorage.setItem('poke_lang', ${JSON.stringify(lang === 'pt' ? 'pt' : 'en')})`).catch(() => {}); // mantem o jogo no idioma escolhido (es usa en, o jogo so tem pt/en)
+      } catch {}
+    });
+    wv.addEventListener('did-fail-load', (e) => {
+      if (e.errorCode === -3 || off[i]) return;
+      falhou = true; dot.className = 'dot err'; status.textContent = t('stError');
+      online[i] = false; atualizaBadge();
+      if (++fails === 3 && !alertedDown) { alertedDown = true; alerta(i, 'msgDown'); } // queda sustentada: avisa
+      if (fails <= 5) setTimeout(() => { if (!off[i]) wv.reload(); }, 6000); // watchdog: tenta reconectar
+    });
+    // sessao caiu e voltou pra tela de login -> loga sozinho se tiver credencial salva
+    // (so na URL de login do proprio jogo; credencial nunca vai para outra pagina)
+    wv.addEventListener('did-navigate', (e) => {
+      const c = accounts[i];
+      if (off[i] || !c || !c.email || !c.senha) return;
+      if (!e.url.startsWith(LOGIN_URL)) return;
+      if (Date.now() - lastLogin[i] < 15000) return; // ja tentou ha pouco: nao ressubmete em loop
+      lastLogin[i] = Date.now();
+      loginPanel(wv, c);
+    });
+
+    panel.querySelector('.reload').onclick = () => { if (!off[i]) wv.reload(); };
+    panel.querySelector('.expand').onclick = () => toggleExpand(i);
+    nameEl.ondblclick = () => {
+      const novo = prompt(t('promptRename'), accounts[i].name || defName(i));
+      if (novo != null) { accounts[i].name = novo; nameEl.textContent = novo || defName(i); save(); }
+    };
+  }
+
+  // Troca a posicao visual de dois paineis (o estado de cada conta nao muda, so a ordem na tela)
+  function movePainel(de, para) {
+    if (de === para) return;
+    const a = grid.querySelector('.panel[data-i="' + de + '"]');
+    const b = grid.querySelector('.panel[data-i="' + para + '"]');
+    if (!a || !b) return;
+    const depois = b.nextElementSibling;
+    grid.insertBefore(b, a);
+    grid.insertBefore(a, depois);
+    ordem = [...grid.children].map(p => +p.dataset.i);
+    lsSet('ordem', JSON.stringify(ordem));
+    ajustaProporcao();
+  }
+  // no boot, restaura a ordem salva (move cada painel pro fim na sequencia desejada)
+  function aplicaOrdem() {
+    if (!Array.isArray(ordem)) return;
+    ordem.forEach(id => {
+      if (!Number.isInteger(id) || id < 0 || id > 3) return;
+      const p = grid.querySelector('.panel[data-i="' + id + '"]');
+      if (p) grid.appendChild(p);
+    });
+  }
+
+  function loginPanel(wv, cred) {
+    return wv.executeJavaScript(`(async () => {
+      const nativo = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      const setar = (el, v) => {
+        nativo.call(el, v);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const texto = (s) => String(s || '').toLowerCase().replace(/\\s+/g, ' ').trim();
+      const combina = (el, padroes) => { const s = texto(el && (el.placeholder || el.getAttribute('aria-label') || el.name)); return padroes.some(r => r.test(s)); };
+      const U = [/e[- ]?mail/, /usuario/, /usuário/, /username/, /login/, /user/];
+      const P = [/senha/, /password/, /contraseña/, /pass/];
+      const pegaUser = (ii) =>
+        ii.find(i => i.autocomplete === 'username' || i.name === 'email' || i.name === 'login' || i.name === 'user') ||
+        ii.find(i => i.type === 'email') ||
+        ii.find(i => combina(i, U));
+      const pegaPass = (ii) =>
+        ii.find(i => i.autocomplete === 'current-password' || i.name === 'password' || i.name === 'senha') ||
+        ii.find(i => i.type === 'password') ||
+        ii.find(i => combina(i, P));
+      // o botao de enviar nao tem atributo type=submit; acha por propriedade, classe ou texto
+      const pegaBotao = () => {
+        const bs = [...document.querySelectorAll('button')];
+        return bs.find(x => x.type === 'submit') ||
+          bs.find(x => /auth-imgbtn/.test(x.className)) ||
+          bs.find(x => /(entrar|login|log in|sign in|iniciar sesión|acceder|entra)/.test(texto(x.textContent)));
+      };
+      const preenche = () => {
+        const ii = [...document.querySelectorAll('input')];
+        const u = pegaUser(ii), p = pegaPass(ii);
+        if (u && u.value !== EMAIL) setar(u, EMAIL);
+        if (p && p.value !== SENHA) setar(p, SENHA);
+        const jj = [...document.querySelectorAll('input')];
+        const uu = pegaUser(jj), pp = pegaPass(jj);
+        return !!(uu && pp && uu.value === EMAIL && pp.value === SENHA);
+      };
+      const EMAIL = ${JSON.stringify(cred.email)}, SENHA = ${JSON.stringify(cred.senha)};
+      for (let t = 0; t < 60; t++) {
+        const ii = [...document.querySelectorAll('input')];
+        if (pegaUser(ii) && pegaPass(ii) && pegaBotao()) {
+          preenche();
+          // O captcha e resolvido POR VOCE (nao tocamos nele). A cada ciclo reforcamos os
+          // campos (caso o jogo os limpe) e so enviamos quando os dois estao corretos.
+          if (!window.__vigia) {
+            window.__vigia = 1;
+            let ciclos = 0;
+            const w = setInterval(() => {
+              const b = pegaBotao();
+              if (!b || ++ciclos > 1200) { clearInterval(w); window.__vigia = 0; return; } // desiste em ~10min
+              preenche();
+              const tk = document.querySelector('input[name=cf-turnstile-response]');
+              if (!(b.disabled || b.getAttribute('aria-disabled') === 'true') && (!tk || tk.value)) { clearInterval(w); window.__vigia = 0; b.click(); }
+            }, 500);
+          }
+          return 'preenchido';
+        }
+        await new Promise(r => setTimeout(r, 300));
+      }
+      return 'sem-form';
+    })()`).catch(() => 'erro');
+  }
+
+  // ----- Numero de paineis (1 a 4), escolhido no menu -----
+  const countBtn = document.getElementById('count');
+  function aplicaCountLayout() {
+    grid.classList.remove('count-1', 'count-2', 'count-3', 'count-4');
+    grid.classList.add('count-' + count);
+    countBtn.textContent = t('count') + ': ' + count;
+    lsSet('count', count);
+  }
+  function build() { for (let i = 0; i < count; i++) criarPainel(i); aplicaCountLayout(); }
+  function setCount(n) {
+    n = Math.min(4, Math.max(1, n));
+    const atual = webviews.length;
+    count = n;
+    if (n < atual) { // remove os paineis do fim (remover do DOM ja destroi o webview)
+      for (let i = n; i < atual; i++) {
+        const p = grid.querySelector('.panel[data-i="' + i + '"]');
+        if (p) p.remove();
+      }
+      while (webviews.length > n) webviews.pop();
+    } else if (n > atual) { // adiciona sem recarregar os existentes
+      for (let i = atual; i < n; i++) { off[i] = false; lastLogin[i] = 0; criarPainel(i); }
+    }
+    aplicaCountLayout();
+    atualizaBadge(); // mudou o numero de paineis: refaz a badge
+    ajustaProporcao(); // painel novo/removido muda o espaco de cada um
+  }
+  countBtn.onclick = () => setCount(count === 4 ? 1 : count + 1); // cicla 4 -> 1 -> 2 -> 3 -> 4
+
+  function toggleExpand(i) {
+    const p = grid.querySelector('.panel[data-i="' + i + '"]');
+    if (!p) return; // painel nao existe (rodando menos de 4)
+    const on = !p.classList.contains('expanded');
+    [...grid.children].forEach(c => c.classList.remove('expanded')); // um por vez
+    if (on) p.classList.add('expanded');
+    ajustaProporcao(); // expandir/voltar muda o espaco do painel
+  }
+
+  function togglePower(i) {
+    const panel = grid.querySelector('.panel[data-i="' + i + '"]');
+    const dot = panel.querySelector('.dot');
+    const status = panel.querySelector('.status');
+    off[i] = !off[i];
+    panel.classList.toggle('off', off[i]);
+    if (off[i]) { webviews[i].src = 'about:blank'; dot.className = 'dot off'; status.textContent = t('stOff'); online[i] = false; }
+    else { dot.className = 'dot'; status.textContent = t('stLoading'); webviews[i].src = START_URL; }
+    atualizaBadge();
+  }
+
+  // Esc com o jogo focado chega pelo main (before-input-event, sem consumir a tecla); com a
+  // interface focada chega pelo keydown local. Os dois caminhos desexpandem o painel.
+  function sairDoFoco() {
+    const e = [...grid.children].findIndex(c => c.classList.contains('expanded'));
+    if (e >= 0) toggleExpand(+grid.children[e].dataset.i);
+  }
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') sairDoFoco(); });
+  window.pokeAPI?.onHotkey?.((k) => {
+    if (k === 'mute') muteBtn.click();
+    else if (k === 'collapse') sairDoFoco();
+    else if (k.lastIndexOf('ctx', 0) === 0) { // clique direito no jogo: modo foco
+      const id = +k.slice(3);
+      const ix = webviews.findIndex(w => { try { return w && w.getWebContentsId() === id; } catch { return false; } });
+      if (ix >= 0) toggleExpand(ix);
+    }
+    else if (k.startsWith('expand')) toggleExpand(+k.slice(6));
+  });
+
+  function loginAll() {
+    webviews.forEach((wv, i) => {
+      const c = accounts[i];
+      if (!c || !c.email || !c.senha) return;
+      lastLogin[i] = 0; // clique manual sempre loga, ignora o cooldown
+      if (off[i]) { togglePower(i); return; } // ao ligar, cai no login e o did-navigate loga
+      try { wv.loadURL(LOGIN_URL); } catch {} // o did-navigate cuida do preenchimento
+    });
+  }
+
+  // ----- Modal de contas -----
+  const overlay = document.getElementById('overlay');
+  function openAccounts() {
+    const rows = document.getElementById('accRows');
+    rows.innerHTML = '';
+    accounts.forEach((c, i) => {
+      const row = document.createElement('div');
+      row.className = 'acc-row';
+      row.innerHTML = `
+        <input data-i="${i}" data-f="name"  placeholder="${t('mName')}">
+        <input data-i="${i}" data-f="email" placeholder="${t('mEmail')}">
+        <input data-i="${i}" data-f="senha" type="password" placeholder="${t('mPass')}">
+        <button class="acc-del" title="${t('accClear')}">🗑</button><button class="acc-wipe" title="${t('accWipe')}">🧹</button>`;
+      const [vn, ve, vs] = row.querySelectorAll('input'); // valores por propriedade: nunca viram HTML
+      vn.value = c.name || ''; ve.value = c.email || ''; vs.value = c.senha || '';
+      row.querySelector('.acc-del').onclick = () => { vn.value = ''; ve.value = ''; vs.value = ''; vn.focus(); };
+      row.querySelector('.acc-wipe').onclick = async () => {
+        if (!window.confirm(t('accWipeConfirm').replace('{n}', (accounts[i] && accounts[i].name) || defName(i)))) return;
+        let okL = false;
+        try { okL = await window.pokeAPI.clearAccount(i); } catch {}
+        if (okL && !off[i] && webviews[i]) try { webviews[i].reload(); } catch {}
+        window.alert(okL ? t('accWipeOk') : t('accWipeErr'));
+      };
+      rows.appendChild(row);
+    });
+    overlay.classList.add('show');
+  }
+  document.getElementById('accounts').onclick = openAccounts;
+  document.getElementById('accCancel').onclick = () => overlay.classList.remove('show');
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('show'); };
+  document.getElementById('accSave').onclick = async () => {
+    document.querySelectorAll('#accRows input').forEach(inp => {
+      accounts[+inp.dataset.i][inp.dataset.f] = inp.value;
+    });
+    grid.querySelectorAll('.panel').forEach(p => {
+      const i2 = +p.dataset.i;
+      p.querySelector('.name').textContent = accounts[i2].name || defName(i2);
+    });
+    await save();
+    overlay.classList.remove('show');
+  };
+
+  // ----- Topbar -----
+  const muteBtn = document.getElementById('muteAll');
+  function applyMute() {
+    muteBtn.textContent = muted ? t('muted') : t('sound');
+    muteBtn.classList.toggle('on', muted);
+    webviews.forEach(w => { try { w.setAudioMuted(muted); } catch {} });
+    lsSet('muted', muted ? '1' : '0');
+  }
+  muteBtn.onclick = () => { muted = !muted; applyMute(); };
+
+  // ----- Modo Eco -----
+  const ecoBtn = document.getElementById('eco');
+  let eco = lsGet('eco') !== '0'; // ligado por padrao
+  function applyEco() {
+    ecoBtn.textContent = eco ? t('eco') : t('ecoOff');
+    ecoBtn.classList.toggle('on', eco);
+    webviews.forEach((w, i) => {
+      if (off[i]) return;
+      try { w.executeJavaScript(ecoScript(eco ? 15 : 0)).catch(() => {}); } catch {}
+    });
+    lsSet('eco', eco ? '1' : '0');
+  }
+  ecoBtn.onclick = () => { eco = !eco; applyEco(); };
+
+  // ----- Anti-sono: impede o PC de dormir enquanto farma -----
+  const awakeBtn = document.getElementById('awake');
+  let awake = lsGet('awake') === '1';
+  async function applyAwake() {
+    awakeBtn.textContent = awake ? t('awake') : t('sleep');
+    awakeBtn.classList.toggle('on', awake);
+    try { await window.pokeAPI.setAwake(awake); } catch {}
+    lsSet('awake', awake ? '1' : '0');
+  }
+  awakeBtn.onclick = () => { awake = !awake; applyAwake(); };
+
+  // ----- Abrir com o Windows: atalho na pasta Inicializar, desligado por padrão -----
+  // O estado real é o arquivo no disco, então nada aqui "acha" que está ligado sem estar.
+  const asBtn = document.getElementById('autoStart');
+  let autoStart = false;
+  function pintaAutoStart() {
+    asBtn.textContent = t(autoStart ? 'asOn' : 'asOff');
+    asBtn.title = t('asTitle');
+    asBtn.classList.toggle('on', autoStart);
+  }
+  asBtn.onclick = async () => {
+    try { autoStart = await window.pokeAPI.setAutoStart(!autoStart); } catch {}
+    pintaAutoStart();
+  };
+  (async () => { // só aparece no Windows, onde a pasta Inicializar existe
+    try {
+      const r = await window.pokeAPI.getAutoStart();
+      if (!r || !r.suportado) return;
+      autoStart = !!r.on; asBtn.style.display = ''; pintaAutoStart();
+    } catch {}
+  })();
+  try { window.pokeAPI.onAutoStart(on => { autoStart = !!on; pintaAutoStart(); }); } catch {} // trocado pela bandeja
+
+  // ----- Proporção original do jogo: sem esticar a imagem (o canvas dele é 1600x832 fixo) -----
+  const propBtn = document.getElementById('propNat');
+  let propNat = lsGet('propNat') !== '0'; // ligado por padrao: imagem correta
+  const PROP_JOGO = 1600 / 832; // o canvas do jogo e fixo nesse tamanho e ele estica pra caber
+  // Dimensiona cada painel na proporcao do jogo: escolhe o lado que limita (largura ou altura),
+  // que e justamente o que CSS sozinho nao decide. Sobra fundo escuro do painel em volta.
+  const propObs = new WeakSet();
+  let propRO = null;
+  try { propRO = new ResizeObserver(() => ajustaProporcao()); } catch {}
+  function ajustaProporcao() {
+    grid.querySelectorAll('.panel').forEach(p => {
+      // observa cada painel, nao so o grid: expandir muda o painel (vira absolute) sem mexer no
+      // grid, e sem isso o jogo ficava do tamanho antigo, pequeno no meio da tela
+      if (propRO && !propObs.has(p)) { propObs.add(p); try { propRO.observe(p); } catch {} }
+      const wv = p.querySelector('webview');
+      if (!wv) return;
+      const poe = (w, h) => { if (wv.style.width !== w || wv.style.height !== h) { wv.style.width = w; wv.style.height = h; } };
+      if (!propNat) return poe('', '');
+      const hd = p.querySelector('.panel-header');
+      const dispW = p.clientWidth, dispH = p.clientHeight - (hd ? hd.offsetHeight : 0);
+      if (dispW < 8 || dispH < 8) return poe('', ''); // escondido
+      const esc = Math.min(dispW / 1600, dispH / 832);
+      poe(Math.max(1, Math.floor(1600 * esc)) + 'px', Math.max(1, Math.floor(832 * esc)) + 'px');
+    });
+  }
+  function applyPropNat() {
+    document.body.classList.toggle('prop-nat', propNat);
+    propBtn.textContent = t(propNat ? 'propOn' : 'propOff');
+    propBtn.title = t('propTitle');
+    propBtn.classList.toggle('on', propNat);
+    lsSet('propNat', propNat ? '1' : '0');
+    ajustaProporcao();
+  }
+  propBtn.onclick = () => { propNat = !propNat; applyPropNat(); };
+  // refaz a conta quando o espaco muda: janela, layout, contagem de paineis, expandir
+  try { new ResizeObserver(() => ajustaProporcao()).observe(grid); } catch {}
+  addEventListener('resize', ajustaProporcao);
+
+  // ----- Minimizar: pra bandeja (padrao) ou normal, na barra de tarefas -----
+  const minTrayBtn = document.getElementById('minTray');
+  let minTray = lsGet('minTray') !== '0'; // padrao: pra bandeja (comportamento antigo)
+  async function applyMinTray() {
+    minTrayBtn.textContent = t(minTray ? 'minTrayOn' : 'minTrayOff');
+    minTrayBtn.title = t('minTrayTitle');
+    minTrayBtn.classList.toggle('on', minTray);
+    try { await window.pokeAPI.setMinToTray(minTray); } catch {}
+    lsSet('minTray', minTray ? '1' : '0');
+  }
+  minTrayBtn.onclick = () => { minTray = !minTray; applyMinTray(); };
+
+  // ----- Alertas: notifica quando uma conta cai (watchdog do painel) -----
+  const alertBtn = document.getElementById('alerts');
+  let alertsOn = lsGet('alerts') !== '0'; // ligado por padrao
+  function applyAlerts() {
+    alertBtn.textContent = t('alerts');
+    alertBtn.title = t('alertsTitle');
+    alertBtn.classList.toggle('on', alertsOn);
+    lsSet('alerts', alertsOn ? '1' : '0');
+  }
+  alertBtn.onclick = () => { alertsOn = !alertsOn; applyAlerts(); };
+  function alerta(i, chave) {
+    if (!alertsOn) return;
+    const nome = (accounts[i] && accounts[i].name) || defName(i);
+    try { window.pokeAPI.notify('Idle Poke Grid', nome + ' ' + t(chave)); } catch {}
+  }
+
+  // ----- Layout dos paineis: grade (2x2) -> coluna (vertical) -> linha (horizontal) -----
+  let layoutMode = lsGet('layout') || 'grid';
+  function applyLayout() {
+    grid.classList.remove('one-col', 'one-row');
+    if (layoutMode === 'col') grid.classList.add('one-col');
+    else if (layoutMode === 'row') grid.classList.add('one-row');
+    // o rotulo mostra o modo atual: antes dizia "Grade" sempre, e ninguem sabia em que modo estava
+    const lb = document.getElementById('layout');
+    lb.textContent = t(layoutMode === 'col' ? 'layoutCol' : layoutMode === 'row' ? 'layoutRow' : 'layout');
+    lb.title = t('layoutTitle');
+    lsSet('layout', layoutMode);
+  }
+  document.getElementById('layout').onclick = () => { layoutMode = layoutMode === 'grid' ? 'col' : layoutMode === 'col' ? 'row' : 'grid'; applyLayout(); };
+
+  // ----- Idioma: aplica na interface e (ao trocar) no jogo -----
+  const langBtns = Array.from(document.querySelectorAll('#langRow button'));
+  function applyLang() {
+    document.documentElement.lang = lang === 'en' ? 'en' : lang === 'es' ? 'es' : 'pt-BR';
+    document.getElementById('loginAll').textContent = t('loginAll');
+    document.getElementById('accounts').textContent = t('accounts');
+    document.getElementById('reloadAll').textContent = t('reloadAll');
+    applyLayout(); // o rotulo do botao depende do modo atual, nao so do idioma
+    document.getElementById('menuBtn').textContent = t('optionsBtn');
+    document.getElementById('count').textContent = t('count') + ': ' + count;
+    const eb = document.getElementById('errlogBtn'); eb.textContent = t('errlog'); eb.title = t('errlogTitle');
+    const be = document.getElementById('bkExp'); be.textContent = t('bkExp'); be.title = t('bkExpTitle');
+    const bi = document.getElementById('bkImp'); bi.textContent = t('bkImp'); bi.title = t('bkImpTitle');
+    document.getElementById('accCancel').textContent = t('mCancel');
+    document.getElementById('accSave').textContent = t('mSave');
+    document.querySelector('#modal h2').textContent = t('mH2');
+    document.querySelector('#modal .hint').textContent = t('mHint');
+    langBtns.forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+    refBtn.title = t('refTitle');
+    awakeBtn.title = t('awakeTitle');
+    alertBtn.title = t('alertsTitle');
+    grid.querySelectorAll('.panel').forEach(p => {
+      const i2 = +p.dataset.i;
+      const nameEl = p.querySelector('.name');
+      if (!accounts[i2].name) nameEl.textContent = defName(i2);
+      nameEl.title = t('tRename');
+      p.querySelector('.panel-header').title = t('tDrag');
+      p.querySelector('.zo').title = t('tZoomOut');
+      p.querySelector('.zi').title = t('tZoomIn');
+      p.querySelector('.reload').title = t('tReload');
+      p.querySelector('.expand').title = t('tExpand');
+      p.querySelector('.zpct').title = t('tZoomPct');
+    });
+    applyMute(); applyEco(); applyAwake(); applyMinTray(); applyPropNat(); applyAlerts(); aplicaCountLayout();
+    lsSet('lang', lang);
+  }
+  function applyGameLang() {
+    const pl = lang === 'pt' ? 'pt' : 'en'; // es usa en no jogo (so tem pt/en)
+    webviews.forEach((w, i) => {
+      if (off[i]) return;
+      lastLogin[i] = 0; // o reload pode cair no login; nao deixa o cooldown bloquear
+      w.executeJavaScript(`localStorage.setItem('poke_lang', ${JSON.stringify(pl)})`).then(() => w.reload()).catch(() => {});
+    });
+  }
+  langBtns.forEach(b => b.onclick = () => { if (lang === b.dataset.lang) return; lang = b.dataset.lang; applyLang(); applyGameLang(); });
+
+  // ----- Dropdown "Menu" (Som, Eco, Dormir, idioma, Erros...) -----
+  const menuWrap = document.getElementById('menuWrap');
+  const menu = document.getElementById('menu');
+  document.getElementById('menuBtn').onclick = (e) => { e.stopPropagation(); menu.classList.toggle('show'); };
+  document.addEventListener('click', (e) => { if (!menuWrap.contains(e.target)) menu.classList.remove('show'); });
+  document.getElementById('errlogBtn').onclick = () => { try { window.pokeAPI.openErrorLog(); } catch {} menu.classList.remove('show'); };
+
+  // ----- Referral: copia o link de convite -----
+  const refBtn = document.getElementById('refBtn');
+  refBtn.onclick = async () => {
+    try { await navigator.clipboard.writeText(HOME_URL); } catch {}
+    refBtn.textContent = t('refCopied');
+    setTimeout(() => { refBtn.textContent = '🔗'; }, 1500);
+  };
+  document.getElementById('reloadAll').onclick = () => webviews.forEach((w, i) => { if (!off[i]) w.reload(); });
+
+  // versao pequena ao lado do logo, vinda do processo principal
+  try {
+    const vAtual = window.pokeAPI && window.pokeAPI.appVersion;
+    const elVer = document.getElementById('appVer');
+    if (vAtual) elVer.textContent = 'v' + vAtual;
+  } catch {}
+
+  // backup/restore: configuracoes do localStorage (senhas nao: ficam criptografadas no main).
+  const BK_SKIP = ['webhook'];
+  const coletaConfig = () => { const o = {}; Object.entries(localStorage).forEach(([k2, v]) => { if (!BK_SKIP.includes(k2)) o[k2] = v; }); return o; };
+  // Backup automatico semanal em userData/backups: protege config de um perfil corrompido.
+  // Mantem os 12 mais recentes (a limpeza fica no main.js).
+  setTimeout(() => {
+    try {
+      if (!window.pokeAPI || !pokeAPI.saveBackup) return;
+      if (Date.now() - (+lsGet('bkAutoT') || 0) < 7 * 86400e3) return;
+      const dia = new Date().toISOString().slice(0, 10);
+      pokeAPI.saveBackup('config-auto-' + dia + '.json', JSON.stringify(coletaConfig()), '').then((okB) => { if (okB) lsSet('bkAutoT', String(Date.now())); }).catch(() => {});
+    } catch {}
+  }, 15000);
+  document.getElementById('bkExp').onclick = () => {
+    const o = coletaConfig();
+    const a = document.createElement('a');
+    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(o));
+    a.download = 'idlepokegrid-config.json'; a.click(); menu.classList.remove('show');
+  };
+  document.getElementById('bkImp').onclick = () => {
+    menu.classList.remove('show');
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+    inp.onchange = () => {
+      const f = inp.files[0]; if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        try {
+          const o = JSON.parse(rd.result);
+          if (!o || typeof o !== 'object' || Array.isArray(o)) throw 0;
+          if (!window.confirm(t('bkConfirm'))) return;
+          Object.keys(o).forEach(k2 => { if (BK_SKIP.includes(k2)) return; try { lsSet(k2, String(o[k2])); } catch {} });
+          location.reload();
+        } catch { window.alert(t('bkBad')); }
+      };
+      rd.readAsText(f);
+    };
+    inp.click();
+  };
+
+  // ----- Boot -----
+  (async () => {
+    await load();
+    build();
+    aplicaOrdem(); // restaura a ordem de paineis salva
+    applyLayout();
+    applyTema();
+    applyMute(); applyEco(); applyAwake(); applyMinTray(); applyPropNat(); applyAlerts();
+    applyLang();
+    atualizaBadge(); // badge inicial (e o main aplica quando a bandeja ficar pronta)
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+========================================
+   IDLE POKE GRID - COMO USAR (passo a passo)
+========================================
+
+Guia para quem nunca mexeu com isso.
+Esta versao roda direto do codigo. Sao 5 passos,
+e a parte "dificil" voce so faz UMA vez.
+
+
+PASSO 1 - INSTALAR O NODE.JS (so na primeira vez)
+--------------------------------------------------
+O Node.js e o "motor" que faz o app funcionar.
+
+  1. Entre no site:  nodejs.org
+  2. Baixe o botao verde grande escrito  LTS
+  3. Abra o arquivo baixado e va clicando em "Avancar / Next"
+     ate o "Concluir / Finish". Nao precisa mudar nada.
+
+Pronto. Isso nao precisa fazer de novo.
+
+
+PASSO 2 - BAIXAR O APP
+-----------------------
+  1. Na pagina do projeto no GitHub, clique no botao verde  Code
+  2. Clique em  Download ZIP
+  3. Va na pasta Downloads, clique com o BOTAO DIREITO no arquivo
+     .zip e escolha "Extrair tudo". Vai aparecer uma pasta.
+
+
+PASSO 3 - INSTALAR AS DEPENDENCIAS (so na primeira vez)
+--------------------------------------------------------
+  1. Entre na pasta que apareceu
+  2. Abra um terminal nela: clique na barra de endereco do
+     Explorer, digite  cmd  e aperte Enter
+  3. Digite  npm install  e aperte Enter. Espere terminar
+     sem mensagem de erro.
+  4. Feche essa janela preta.
+
+
+PASSO 4 - ABRIR O APP
+----------------------
+  1. De DOIS CLIQUES no arquivo  Abrir Idle Poke Grid  (.vbs).
+     Ele abre o app SEM janela preta.
+
+  * Se o Windows mostrar uma tela azul ("O Windows protegeu seu
+    computador"), clique em "Mais informacoes" e depois em
+    "Executar assim mesmo". E porque o app nao tem assinatura
+    paga, mas o codigo e aberto e voce pode conferir.
+
+  QUER UM ATALHO NA AREA DE TRABALHO?
+  Botao direito no arquivo "Abrir Idle Poke Grid" e escolha:
+  Enviar para > Area de trabalho (criar atalho).
+
+  * O iniciar.bat continua funcionando, mas deixa uma janela
+    preta aberta: se fechar essa janela, o app fecha junto.
+    Pelo "Abrir Idle Poke Grid" isso nao acontece.
+
+  No Mac ou Linux: abra o Terminal na pasta, rode  npm install
+  uma vez e depois:  bash iniciar.sh
+
+
+PASSO 5 - USAR
+---------------
+  1. Em cada quadradinho, entre na sua conta do Idle Poke
+     (ou crie uma).
+  2. O "Confirme que e humano" e SEMPRE voce que resolve. O app
+     nunca faz isso no seu lugar.
+  3. Clique em "Treinadores", preencha e-mail/usuario e senha
+     de cada conta e salve. Da proxima vez o app entra sozinho.
+
+
+PARA ATUALIZAR DEPOIS
+----------------------
+Baixe o ZIP de novo (Passo 2) e substitua a pasta antiga.
+Suas contas continuam salvas.
+
+
+DEU PROBLEMA?
+--------------
+- "Abrir Idle Poke Grid" abre e fecha na hora: o npm install
+  do Passo 3 nao foi feito ou o Node.js nao esta instalado.
+  Refaca os Passos 1 e 3.
+- Uma conta nao entra sozinha: abra "Treinadores" e confira o
+  e-mail/usuario e a senha daquela conta.
+- Travando ou lento: ligue o "Eco" no menu "Opcoes".
+- A janela nao aparece: o app pode ja estar aberto na bandeja.
+  Procure o icone perto do relogio do Windows. Se nao achar,
+  abra "Opcoes" e depois "Erros" pra ver o relatorio.

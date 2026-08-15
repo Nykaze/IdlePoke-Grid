@@ -1,0 +1,65 @@
+{
+  "name": "idlepokegrid",
+  "version": "1.0.0",
+  "description": "Rode ate 4 contas de Idle Poke (idlepoke.com) ao mesmo tempo, em uma janela so / Run up to 4 Idle Poke accounts at once, in a single window",
+  "main": "main.js",
+  "author": "Nykaze",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/boot.test.js",
+    "dist": "electron-builder --win"
+  },
+  "keywords": [
+    "electron",
+    "multi-account",
+    "idle-poke",
+    "idle-game"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^43.1.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "online.idlepokegrid.app",
+    "productName": "Idle Poke Grid",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "tray.png",
+      "Idle Poke Logo.png",
+      "node_modules/**/*",
+      "!node_modules/.bin/**",
+      "!node_modules/electron/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Idle Poke Grid",
+      "artifactName": "IdlePokeGrid-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "IdlePokeGrid-Portable-${version}.${ext}"
+  }
+}
+}
