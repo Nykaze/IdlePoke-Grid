@@ -68,6 +68,7 @@ That is it. Log in or create an account in each panel and, under "Treinadores" (
 - **Drag a panel header** to swap panels around; the order is saved.
 - **5 accent themes** (violet, blue, green, pink, amber), switchable from the menu.
 - **Tray badge** showing how many accounts are down, visible at a glance.
+- **The app icon (`tray.png`)** on the taskbar and tray, replacing the default Electron icon.
 - Eco mode that keeps CPU use down without hurting progress.
 - **Hide game elements** (chat, windows, icon menu, combat) with checkboxes in the menu, applied to every account.
 - **Hunt pill** over each panel showing what the account is farming and for how long.

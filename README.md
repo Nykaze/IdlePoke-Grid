@@ -70,6 +70,7 @@ Pronto. Entre ou crie uma conta em cada painel e, em "Treinadores", salve o logi
 - **Arraste o cabeçalho de um painel** pra trocar os painéis de lugar; a ordem fica salva.
 - **5 temas de cor** (violeta, azul, verde, rosa, âmbar), trocáveis no menu.
 - **Distintivo na bandeja** com o número de contas fora do ar, pra ver de relance sem abrir a janela.
+- **O ícone do app (`tray.png`)** na barra de tarefas e na bandeja, no lugar do ícone padrão.
 - Modo Eco que segura o uso de CPU sem atrapalhar o progresso.
 - **Esconde elementos do jogo** (chat, janelas, menu de ícones, combat) com caixas no menu, valendo para todas as contas.
 - **Pílula de hunt** por cima de cada painel com o que a conta está farmando e há quanto tempo.

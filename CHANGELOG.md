@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+Ícone do app em todo lugar.
+
+- A janela (barra de tarefas) agora usa o **ícone do app (`tray.png`)** em vez do ícone padrão do Electron. O ícone fica igual na bandeja e na barra de tarefas.
+
 ## 1.1.0
 
 Esconder elementos do jogo e pílula de hunt.

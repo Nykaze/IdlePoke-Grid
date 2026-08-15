@@ -221,9 +221,11 @@ app.whenReady().then(() => {
   const win = new BrowserWindow({
     width: 1600, height: 900, show: false, autoHideMenuBar: true,
     backgroundColor: '#0a0d13',
+    icon: path.join(__dirname, 'tray.png'),
     webPreferences: { webviewTag: true, preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false }
   });
   win.loadFile(path.join(__dirname, 'index.html')); // caminho absoluto: robusto dentro do asar
+
   // a janela principal so mostra index.html: bloqueia navegacao pra fora (canal de exfiltracao)
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file://')) { e.preventDefault(); abreFora(url); } });
   win.webContents.setWindowOpenHandler(({ url }) => { abreFora(url); return { action: 'deny' }; });
