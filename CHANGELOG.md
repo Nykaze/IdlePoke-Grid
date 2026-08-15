@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0
+
+Esconder elementos do jogo e pílula de hunt.
+
+- **👁 Esconder**: caixas no menu para esconder do jogo (vale para todas as contas): todas as janelas do jogo, chat, janela de hunt, menu de ícones e combat. O escondido volta na hora ao desmarcar.
+- **🎯 Hunt**: pílula por cima de cada painel com o que a conta está farmando e há quanto tempo, atualizada sozinha (mostra "sem hunt" quando não está caçando).
+- Esconder usa `visibility`/`opacity` (nunca `display:none`), então o jogo segue calculando a própria tela normalmente; a reaplicação em troca de tela é feita por um observer leve dentro do próprio painel.
+
 ## 1.0.0
 
 Versão inicial pública. Reescrita completa, sem código herdado.

@@ -178,6 +178,44 @@
   .acc-row input:focus { outline: none; border-color: var(--ac1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac1) 18%, transparent); }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
+  /* Modal Esconder elementos (reusa a linguagem visual do modal Contas) */
+  #hideOverlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(4,7,12,.62); backdrop-filter: blur(5px);
+    display: none; align-items: center; justify-content: center;
+  }
+  #hideOverlay.show { display: flex; }
+  #hideModal {
+    background: linear-gradient(180deg, #161e2d, #121828);
+    border: 1px solid #2a3550; border-radius: 14px; padding: 20px 24px; width: 430px; max-width: 92vw;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px color-mix(in srgb, var(--ac1) 10%, transparent);
+    animation: modalIn .15s ease;
+  }
+  #hideModal h2 { font-size: 15px; margin-bottom: 4px; letter-spacing: .3px; }
+  #hideModal p.hint { font-size: 11px; color: var(--mut); line-height: 1.5; margin-bottom: 12px; }
+  .hrow {
+    display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 8px;
+    cursor: pointer; font-size: 12px; line-height: 1.35; user-select: none;
+    border: 1px solid transparent; transition: background .12s ease, border-color .12s ease;
+  }
+  .hrow:hover { background: rgba(255,255,255,.045); }
+  .hrow.checked { background: rgba(34,197,94,.07); border-color: color-mix(in srgb, var(--verde) 30%, transparent); }
+  .hrow input { accent-color: var(--verde); flex-shrink: 0; cursor: pointer; width: 14px; height: 14px; }
+  .hrow .hicon { flex-shrink: 0; font-size: 13px; }
+
+  /* Pílula de hunt: mostra o que cada conta está farmando por cima do jogo */
+  .huntbar {
+    position: absolute; top: 36px; left: 50%; transform: translateX(-50%); z-index: 30;
+    display: flex; align-items: center; gap: 8px; max-width: 86%; overflow: hidden;
+    background: rgba(8,11,18,.84); border: 1px solid var(--borda2); border-radius: 99px;
+    padding: 3px 11px; font-size: 10.5px; font-weight: 600; color: #ffe9a8;
+    box-shadow: 0 4px 14px rgba(0,0,0,.45); white-space: nowrap;
+    pointer-events: none;
+  }
+  .huntbar.hidden { display: none; }
+  .huntbar .huntb-name { overflow: hidden; text-overflow: ellipsis; }
+  .huntbar .huntb-t { color: #9be8c0; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
   ::-webkit-scrollbar { width: 10px; }
   ::-webkit-scrollbar-thumb { background: #263042; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
   ::-webkit-scrollbar-thumb:hover { background: #35456a; background-clip: content-box; }
@@ -197,6 +235,8 @@
       <button id="menuBtn">☰ Opções</button>
       <div id="menu">
         <button id="count" title="Quantas contas rodar ao mesmo tempo (1 a 4)">🔢 Painéis: 4</button>
+        <button id="huntBtn" title="Mostra sobre cada painel o que a conta está farmando e há quanto tempo">🎯 Hunt</button>
+        <button id="hideBtn" title="Escolhe o que esconder no jogo de cada conta (chat, janelas, barras…)">👁 Esconder</button>
         <button id="alerts" title="Avisa por notificação quando uma conta cai">🔔 Alertas</button>
         <button id="muteAll">🔊 Som</button>
         <button id="eco">⚡ Eco</button>
@@ -224,6 +264,17 @@
       <div class="modal-actions">
         <button id="accCancel">Cancelar</button>
         <button id="accSave" class="primary">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hideOverlay">
+    <div id="hideModal">
+      <h2 id="hideH2">Esconder elementos do jogo</h2>
+      <p class="hint" id="hideHint">Vale para todas as contas. O que você marcar some do jogo (fica recarregado se a tela trocar). Desmarque pra ver de novo.</p>
+      <div id="hideRows"></div>
+      <div class="modal-actions">
+        <button id="hideClose" class="primary">Ok</button>
       </div>
     </div>
   </div>
@@ -271,7 +322,12 @@
       mH2:'Treinadores salvos', mHint:'Preencha e-mail/usuário e senha de cada painel. As senhas ficam criptografadas neste PC. "Logar equipe" entra automaticamente onde houver dados, e se a sessão cair o painel loga sozinho.', mName:'Nome', mEmail:'E-mail ou usuário', mPass:'Senha', mCancel:'Cancelar', mSave:'Salvar',
       accClear:'Limpar esta conta', accWipe:'Limpar os dados do jogo desta conta (cookies e cache). Use se a conta bugou. A senha salva fica.', accWipeConfirm:'Limpar os dados do jogo da conta {n}?\nResolve conta bugada (mapa, filtros, pokémon sumidos). A senha salva não é apagada; a conta desloga e loga de novo.', accWipeOk:'Dados limpos. A conta vai recarregar do zero.', accWipeErr:'Não deu pra limpar. Tente fechar e abrir o app.',
       minTrayOn:'📥 Minimiza p/ bandeja', minTrayOff:'📥 Minimiza normal', minTrayTitle:'O que o botão minimizar faz: esconder na bandeja (ícone perto do relógio) ou minimizar normal na barra de tarefas',
-      bkExp:'💾 Exportar config', bkImp:'📂 Importar config', bkExpTitle:'Salva um arquivo com todas as configurações (senhas ficam fora)', bkImpTitle:'Restaura configurações e histórico de um arquivo exportado', bkConfirm:'Substituir as configurações atuais pelas do arquivo? O app vai recarregar. (Senhas não são afetadas.)', bkBad:'Arquivo inválido.'
+      bkExp:'💾 Exportar config', bkImp:'📂 Importar config', bkExpTitle:'Salva um arquivo com todas as configurações (senhas ficam fora)', bkImpTitle:'Restaura configurações e histórico de um arquivo exportado', bkConfirm:'Substituir as configurações atuais pelas do arquivo? O app vai recarregar. (Senhas não são afetadas.)', bkBad:'Arquivo inválido.',
+      hideBtn:'👁 Esconder', hideBtnTitle:'Escolhe o que esconder no jogo de cada conta (chat, janelas, barras…)',
+      huntBtn:'🎯 Hunt', huntBtnTitle:'Mostra sobre cada painel o que a conta está farmando e há quanto tempo',
+      hideH2:'Esconder elementos do jogo', hideHint:'Vale para todas as contas. O que você marcar some do jogo (fica recarregado se a tela trocar). Desmarque pra ver de novo. Se precisar mexer no que estava escondido, é só desmarcar aqui.',
+      oHuds:'🎛 Todas as janelas do jogo (menu, equipe, buffs, notificações, CP, barra do treinador)', oChat:'💬 Chat', oHunt:'⏱ Janela de hunt', oIcones:'☰ Menu de ícones', oCombat:'⚔ Combat (modo batalha)',
+      oNoHunt:'sem hunt', hideOk:'Ok', huntFor:'farma'
     },
     en: {
       loginAll:'▶ Log in all', accounts:'👤 Accounts', reloadAll:'⟳ Reload all', layout:'▦ Grid', layoutCol:'▤ Single column', layoutRow:'▥ Single row', layoutTitle:'How the panels are arranged. Click to cycle: grid, single column (stacked) or single row (side by side).', propOn:'🖼 Original aspect', propOff:'🖼 Stretch to fill', propTitle:'Keeps the game original aspect ratio instead of stretching the image. Dark bars appear when the panel does not match the ratio; turned off, the image fills everything but gets distorted.', asOn:'🚀 Opens with Windows', asOff:'🚀 Open with Windows', asTitle:'Creates an Idle Poke Grid shortcut in the Windows Startup folder, the same place you would put one by hand. It does not touch the registry and you can remove it via Win+R > shell:startup.',
@@ -284,7 +340,12 @@
       mH2:'Saved accounts', mHint:'Fill in the e-mail/username and password for each panel. Passwords are encrypted on this PC. "Log in all" signs in automatically where data exists, and if the session drops the panel logs in by itself.', mName:'Name', mEmail:'E-mail or username', mPass:'Password', mCancel:'Cancel', mSave:'Save',
       accClear:'Clear this account', accWipe:'Clear this account game data (cookies and cache). Use it if the account glitched. Saved password stays.', accWipeConfirm:'Clear game data for account {n}?\nFixes a glitched account. The saved password is kept; the account logs out and back in.', accWipeOk:'Data cleared. The account will reload from scratch.', accWipeErr:'Could not clear. Try restarting the app.',
       minTrayOn:'📥 Minimize to tray', minTrayOff:'📥 Minimize normally', minTrayTitle:'What the minimize button does: hide to the tray (icon near the clock) or minimize normally to the taskbar',
-      bkExp:'💾 Export config', bkImp:'📂 Import config', bkExpTitle:'Saves a file with all settings and history (passwords stay out)', bkImpTitle:'Restores settings and history from an exported file', bkConfirm:'Replace the current settings with the file? The app will reload. (Passwords are not affected.)', bkBad:'Invalid file.'
+      bkExp:'💾 Export config', bkImp:'📂 Import config', bkExpTitle:'Saves a file with all settings and history (passwords stay out)', bkImpTitle:'Restores settings and history from an exported file', bkConfirm:'Replace the current settings with the file? The app will reload. (Passwords are not affected.)', bkBad:'Invalid file.',
+      hideBtn:'👁 Hide', hideBtnTitle:'Choose what to hide in each account game (chat, windows, bars…)',
+      huntBtn:'🎯 Hunt', huntBtnTitle:'Shows on each panel what the account is farming and for how long',
+      hideH2:'Hide game elements', hideHint:'Applies to all accounts. What you check disappears from the game (it is re-applied when the screen changes). Uncheck to show it again. Need to use something you hid? Just uncheck it here.',
+      oHuds:'🎛 All game windows (menu, team, buffs, notifications, CP, trainer bar)', oChat:'💬 Chat', oHunt:'⏱ Hunt window', oIcones:'☰ Icon menu', oCombat:'⚔ Combat (battle mode)',
+      oNoHunt:'no hunt', hideOk:'Ok', huntFor:'farming'
     },
     es: {
       loginAll:'▶ Iniciar equipo', accounts:'👤 Entrenadores', reloadAll:'⟳ Recargar todo', layout:'▦ Cuadrícula', layoutCol:'▤ Una columna', layoutRow:'▥ Una fila', layoutTitle:'Cómo se organizan los paneles. Clic para alternar: cuadrícula, una columna (apilado) o una fila (lado a lado).', propOn:'🖼 Proporción original', propOff:'🖼 Estirar en pantalla', propTitle:'Mantiene la proporción original del juego, sin estirar la imagen. Queda fondo oscuro cuando el panel no coincide con la proporción; apagado, la imagen llena todo pero se distorsiona.', asOn:'🚀 Abre con Windows', asOff:'🚀 Abrir con Windows', asTitle:'Crea un acceso directo de Idle Poke Grid en la carpeta Inicio de Windows, el mismo lugar donde lo pondrías a mano. No toca el registro y puedes quitarlo con Win+R > shell:startup.',
@@ -297,7 +358,12 @@
       mH2:'Entrenadores guardados', mHint:'Completa el e-mail/usuario y la contraseña de cada panel. Las contraseñas quedan cifradas en este PC. "Iniciar equipo" entra automáticamente donde haya datos, y si la sesión se cae el panel entra solo.', mName:'Nombre', mEmail:'E-mail o usuario', mPass:'Contraseña', mCancel:'Cancelar', mSave:'Guardar',
       accClear:'Limpiar esta cuenta', accWipe:'Limpia los datos del juego de esta cuenta (cookies y caché). Úsalo si la cuenta se bugueó. La contraseña guardada queda.', accWipeConfirm:'¿Limpiar los datos del juego de la cuenta {n}?\nArregla una cuenta bugueada. La contraseña guardada no se borra; la cuenta sale y vuelve a entrar.', accWipeOk:'Datos limpios. La cuenta recargará desde cero.', accWipeErr:'No se pudo limpiar. Prueba reiniciar la app.',
       minTrayOn:'📥 Minimizar a la bandeja', minTrayOff:'📥 Minimizar normal', minTrayTitle:'Qué hace el botón minimizar: esconder en la bandeja (icono junto al reloj) o minimizar normal a la barra de tareas',
-      bkExp:'💾 Exportar config', bkImp:'📂 Importar config', bkExpTitle:'Guarda un archivo con todas las configuraciones y el historial (las contraseñas quedan fuera)', bkImpTitle:'Restaura configuraciones e historial desde un archivo exportado', bkConfirm:'¿Reemplazar las configuraciones actuales por las del archivo? La app se recargará. (Las contraseñas no se ven afectadas.)', bkBad:'Archivo inválido.'
+      bkExp:'💾 Exportar config', bkImp:'📂 Importar config', bkExpTitle:'Guarda un archivo con todas las configuraciones y el historial (las contraseñas quedan fuera)', bkImpTitle:'Restaura configuraciones e historial desde un archivo exportado', bkConfirm:'¿Reemplazar las configuraciones actuales por las del archivo? La app se recargará. (Las contraseñas no se ven afectadas.)', bkBad:'Archivo inválido.',
+      hideBtn:'👁 Ocultar', hideBtnTitle:'Elige qué ocultar en el juego de cada cuenta (chat, ventanas, barras…)',
+      huntBtn:'🎯 Hunt', huntBtnTitle:'Muestra en cada panel qué está farmeando la cuenta y desde hace cuánto',
+      hideH2:'Ocultar elementos del juego', hideHint:'Vale para todas las cuentas. Lo que marques desaparece del juego (se vuelve a aplicar si cambia la pantalla). Desmarca para verlo de nuevo. ¿Necesitas usar algo oculto? Desmárcalo aquí.',
+      oHuds:'🎛 Todas las ventanas del juego (menú, equipo, buffs, notificaciones, CP, barra del entrenador)', oChat:'💬 Chat', oHunt:'⏱ Ventana de hunt', oIcones:'☰ Menú de iconos', oCombat:'⚔ Combat (modo batalla)',
+      oNoHunt:'sin hunt', hideOk:'Ok', huntFor:'farmeando'
     }
   };
   let lang = ['en', 'es'].includes(lsGet('lang')) ? lsGet('lang') : 'pt';
@@ -416,6 +482,10 @@
     wv.partition = 'persist:conta' + (i + 1);
     wv.src = START_URL;
     panel.appendChild(wv);
+    const huntbar = document.createElement('div');
+    huntbar.className = 'huntbar hidden';
+    huntbar.innerHTML = '<span class="huntb-name"></span><span class="huntb-t"></span>';
+    panel.appendChild(huntbar);
     grid.appendChild(panel);
     webviews[i] = wv;
 
@@ -485,6 +555,8 @@
         // so na tela de login, pra nao rodar a toa dentro do jogo
         if ((wv.getURL() || '').startsWith(LOGIN_URL)) wv.executeJavaScript(scrollLoginScript).catch(() => {});
         wv.executeJavaScript(`localStorage.setItem('poke_lang', ${JSON.stringify(lang === 'pt' ? 'pt' : 'en')})`).catch(() => {}); // mantem o jogo no idioma escolhido (es usa en, o jogo so tem pt/en)
+        wv.executeJavaScript(ocultarScript).catch(() => {}); // esconder elementos (reaplica sozinho)
+        sincronizaOcultar(i);
       } catch {}
     });
     wv.addEventListener('did-fail-load', (e) => {
@@ -740,6 +812,159 @@
   }
   ecoBtn.onclick = () => { eco = !eco; applyEco(); };
 
+  // ----- Esconder elementos do jogo -----
+  // Script que roda DENTRO do jogo: lê as opções do localStorage do próprio jogo, esconde as
+  // janelas marcadas e reaplica sozinho quando o React re-renderizar a tela (MutationObserver).
+  const ocultarScript = `(() => {
+    const RULES = {
+      huds: (d) => [...d.querySelectorAll('[class*="group/hud"]')],
+      chat: (d) => {
+        const h = [...d.querySelectorAll('h2,h3')].find((x) => x.textContent.trim() === 'Chat');
+        if (!h) return [];
+        return [h.closest('[class*="color-gw-bg"]') || h.parentElement.parentElement];
+      },
+      hunt: (d) => {
+        const c = d.querySelector('.lucide-clock');
+        if (!c) return [];
+        return [c.closest('[class*="--gw-window-bg"]') || c.parentElement.parentElement.parentElement];
+      },
+      icones: (d) => { const b = d.querySelector('[class*="box-content"]'); return b ? [b] : []; },
+      combat: (d) => {
+        const s = [...d.querySelectorAll('*')].find((x) => x.children.length === 0 && /^Combat IDLE/.test((x.textContent || '').trim()));
+        if (!s) return [];
+        return [s.closest('[class*="z-[90]"]') || s.parentElement.parentElement];
+      }
+    };
+    // Esconder usa visibility+opacity, NUNCA display:none: essas janelas ficam absolutas no
+    // DOM, e o jogo le as dimensoes delas para calcular a propria tela. Sem layout nao muda
+    // (janelas absolutas nao empurram nada), mas os rects continuam valendo -> o jogo nao quebra.
+    let ultimos = null;
+    const aplica = () => {
+      let ids = [];
+      try { ids = JSON.parse(localStorage.getItem('ipg_ocultar') || '[]'); } catch {}
+      if (!Array.isArray(ids)) ids = [];
+      const mudou = !ultimos || ultimos.length !== ids.length || ultimos.some((x, i) => x !== ids[i]);
+      ultimos = ids;
+      if (mudou) {
+        document.querySelectorAll('[data-ipg-oculto]').forEach((el) => {
+          el.style.visibility = el.style.opacity = '';
+          delete el.dataset.ipgOculto;
+        });
+      }
+      ids.forEach((id) => {
+        const f = RULES[id];
+        if (!f) return;
+        (f(document) || []).forEach((el) => {
+          if (!el || el === document.body || el === document.documentElement) return;
+          el.dataset.ipgOculto = '1';
+          el.style.visibility = 'hidden';
+          el.style.opacity = '0';
+        });
+      });
+    };
+    aplica();
+    let tm = null;
+    try { new MutationObserver(() => { clearTimeout(tm); tm = setTimeout(aplica, 350); }).observe(document.body, { childList: true, subtree: true }); } catch {}
+    window.__ipgOcultar = aplica;
+  })()`;
+  // Le a janela de hunt do jogo: nome da hunt + tempo (o lucide-clock é o relogiozinho dela).
+  const huntReadScript = `(() => {
+    const c = document.querySelector('.lucide-clock');
+    if (!c) return '|';
+    const jan = c.closest('[class*="--gw-window-bg"]');
+    if (!jan) return '|';
+    const n = jan.querySelector('[class*="text-yellow-200"]');
+    const nome = (n ? n.textContent : '').trim();
+    const tempo = (c.parentElement ? c.parentElement.textContent : '').trim().replace(/\\s+/g, ' ');
+    return nome + '|' + tempo;
+  })()`;
+
+  let ocultar = (() => { try { const o = JSON.parse(lsGet('ocultar') || '[]'); return Array.isArray(o) ? o : []; } catch { return []; } })();
+  // passa as opcoes para dentro do jogo (no localStorage dele) e aplica na hora
+  function sincronizaOcultar(i) {
+    const w = webviews[i];
+    if (!w || off[i]) return;
+    try {
+      w.executeJavaScript('localStorage.setItem("ipg_ocultar", ' + JSON.stringify(JSON.stringify(ocultar)) + '); if (window.__ipgOcultar) window.__ipgOcultar();').catch(() => {});
+    } catch {}
+  }
+  function aplicaOcultar() {
+    lsSet('ocultar', JSON.stringify(ocultar));
+    webviews.forEach((_w, i) => sincronizaOcultar(i));
+  }
+
+  const OCULTAR_OPCOES = [
+    { id: 'huds',   icone: '🎛', chave: 'oHuds' },
+    { id: 'chat',   icone: '💬', chave: 'oChat' },
+    { id: 'hunt',   icone: '⏱', chave: 'oHunt' },
+    { id: 'icones', icone: '☰', chave: 'oIcones' },
+    { id: 'combat', icone: '⚔', chave: 'oCombat' }
+  ];
+  const hideOverlay = document.getElementById('hideOverlay');
+  const hideRows = document.getElementById('hideRows');
+  function preencheHideRows() {
+    hideRows.innerHTML = '';
+    OCULTAR_OPCOES.forEach((op) => {
+      const label = document.createElement('label');
+      label.className = 'hrow' + (ocultar.includes(op.id) ? ' checked' : '');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = ocultar.includes(op.id);
+      cb.onchange = () => {
+        ocultar = ocultar.includes(op.id) ? ocultar.filter((x) => x !== op.id) : ocultar.concat(op.id);
+        label.classList.toggle('checked', cb.checked);
+        aplicaOcultar();
+      };
+      const ic = document.createElement('span'); ic.className = 'hicon'; ic.textContent = op.icone;
+      const tx = document.createElement('span'); tx.textContent = t(op.chave);
+      label.appendChild(cb); label.appendChild(ic); label.appendChild(tx);
+      hideRows.appendChild(label);
+    });
+  }
+  const hideBtn = document.getElementById('hideBtn');
+  const hideClose = document.getElementById('hideClose');
+  hideBtn.onclick = () => { menu.classList.remove('show'); preencheHideRows(); hideOverlay.classList.add('show'); };
+  hideClose.onclick = () => hideOverlay.classList.remove('show');
+  hideOverlay.onclick = (e) => { if (e.target === hideOverlay) hideOverlay.classList.remove('show'); };
+
+  // ----- Pílula de hunt: o que cada conta está farmando e há quanto tempo -----
+  const huntBtn = document.getElementById('huntBtn');
+  let hunt = lsGet('hunt') === '1';
+  function aplicaHuntBtn() {
+    huntBtn.textContent = t('huntBtn');
+    huntBtn.title = t('huntBtnTitle');
+    huntBtn.classList.toggle('on', hunt);
+    grid.querySelectorAll('.huntbar').forEach((b) => b.classList.toggle('hidden', !hunt));
+    lsSet('hunt', hunt ? '1' : '0');
+  }
+  huntBtn.onclick = () => { hunt = !hunt; aplicaHuntBtn(); tickHunt(); };
+  function tickHunt() {
+    if (!hunt) return;
+    webviews.forEach((w, i) => {
+      const bar = grid.querySelector('.panel[data-i="' + i + '"] .huntbar');
+      if (!bar) return;
+      if (off[i] || !online[i]) { bar.classList.add('hidden'); return; }
+      try {
+        w.executeJavaScript(huntReadScript).then((r) => {
+          if (!bar) return;
+          const partes = typeof r === 'string' ? r.split('|') : [];
+          const nome = (partes[0] || '').trim();
+          const tempo = (partes[1] || '').trim();
+          const nomeEl = bar.querySelector('.huntb-name');
+          const tempoEl = bar.querySelector('.huntb-t');
+          if (nome) {
+            nomeEl.textContent = '🎯 ' + nome;
+            tempoEl.textContent = tempo;
+          } else {
+            nomeEl.textContent = '🎯 ' + t('oNoHunt');
+            tempoEl.textContent = '';
+          }
+          bar.classList.remove('hidden');
+        }).catch(() => {});
+      } catch {}
+    });
+  }
+  setInterval(tickHunt, 5000);
+
   // ----- Anti-sono: impede o PC de dormir enquanto farma -----
   const awakeBtn = document.getElementById('awake');
   let awake = lsGet('awake') === '1';
@@ -866,6 +1091,12 @@
     const eb = document.getElementById('errlogBtn'); eb.textContent = t('errlog'); eb.title = t('errlogTitle');
     const be = document.getElementById('bkExp'); be.textContent = t('bkExp'); be.title = t('bkExpTitle');
     const bi = document.getElementById('bkImp'); bi.textContent = t('bkImp'); bi.title = t('bkImpTitle');
+    hideBtn.textContent = t('hideBtn'); hideBtn.title = t('hideBtnTitle');
+    huntBtn.textContent = t('huntBtn'); huntBtn.title = t('huntBtnTitle');
+    document.getElementById('hideH2').textContent = t('hideH2');
+    document.getElementById('hideHint').textContent = t('hideHint');
+    document.getElementById('hideClose').textContent = t('hideOk');
+    preencheHideRows();
     document.getElementById('accCancel').textContent = t('mCancel');
     document.getElementById('accSave').textContent = t('mSave');
     document.querySelector('#modal h2').textContent = t('mH2');
@@ -969,6 +1200,7 @@
     applyLayout();
     applyTema();
     applyMute(); applyEco(); applyAwake(); applyMinTray(); applyPropNat(); applyAlerts();
+    aplicaOcultar(); aplicaHuntBtn(); tickHunt();
     applyLang();
     atualizaBadge(); // badge inicial (e o main aplica quando a bandeja ficar pronta)
   })();

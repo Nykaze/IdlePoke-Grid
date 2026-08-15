@@ -39,7 +39,6 @@ ipcMain.handle('errlog:open', () => {
     shell.showItemInFolder(arquivoErro());
   } catch {}
 });
-
 // backup:save guarda configs (automatico semanal e export manual). O nome vem da
 // interface, entao e tratado como hostil: so basename, charset restrito e teto de 2MB.
 ipcMain.handle('backup:save', (_e, nome, conteudo, cabecalho) => {

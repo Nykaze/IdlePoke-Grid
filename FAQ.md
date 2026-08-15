@@ -37,6 +37,8 @@ O app nunca resolve captcha. É sempre você, na janela da conta. Proposital, n�
 ### O que faz cada opção do menu?
 
 - **🔔 Alertas**: avisa por notificação do Windows quando uma conta cai.
+- **🎯 Hunt**: mostra por cima de cada painel o que a conta está farmando e há quanto tempo.
+- **👁 Esconder**: escolhe o que esconder no jogo de todas as contas (chat, janelas, barras…).
 - **🔊 Som**: liga/desliga o som de todos os painéis de uma vez.
 - **⚡ Eco**: segura o uso de CPU (deixa o jogo mais leve).
 - **💤 Dormir**: impede o PC de dormir enquanto farma (a tela ainda pode desligar).
@@ -45,6 +47,12 @@ O app nunca resolve captcha. É sempre você, na janela da conta. Proposital, n�
 - **▦ Grade**: alterna o arranjo entre grade (2×2), uma coluna e uma linha.
 - **🖼 Proporção original**: mantém a proporção do jogo sem esticar a imagem (sobra fundo escuro).
 - **🌐 Idioma**: português, inglês ou espanhol (o jogo continua em pt/en).
+
+### Escondi o chat (ou uma janela) e agora não consigo usar o jogo?
+É só desmarcar no **☰ Opções → 👁 Esconder** — o que foi escondido volta na hora, sem recarregar. O escondido nunca é apagado: o app só esconde na visualização.
+
+### A pílula 🎯 Hunt diz "sem hunt" mas eu estou caçando?
+A pílula lê a janela de hunt do jogo. Se ela mostra "sem hunt", o jogo não está mostrando a janela de hunt daquele painel (hunt terminou, mudou de mapa ou a janela está fechada no jogo). Ajuste a janela de hunt no jogo que a pílula acompanha na sequência.
 
 ## Projeto
 

@@ -19,6 +19,8 @@ Atalhos de teclado (só quando o foco está na interface, não dentro do jogo): 
 | Opção | O que faz |
 |---|---|
 | **🔢 Painéis: N** | Quantas contas rodam ao mesmo tempo (1 a 4) |
+| **🎯 Hunt** | Mostra sobre cada painel o que a conta está farmando e há quanto tempo |
+| **👁 Esconder** | Escolhe o que esconder no jogo de cada conta (chat, janelas, barras…) |
 | **🔔 Alertas** | Avisa por notificação quando uma conta cai |
 | **🔊 Som** | Liga e desliga o som de todos os painéis de uma vez |
 | **⚡ Eco** | Segura o uso de CPU, o jogo fica mais leve sem parar o progresso |
@@ -32,6 +34,21 @@ Atalhos de teclado (só quando o foco está na interface, não dentro do jogo): 
 | **🎨** | Cor de destaque do app: violeta, azul, verde, rosa ou âmbar |
 | **🌐** | Idioma da interface: português, inglês ou espanhol |
 | **🐞 Erros** | Abre o relatório de erros. Se o app travar ou fechar sozinho, esse arquivo mostra onde parou |
+
+## 👁 Esconder elementos do jogo e 🎯 Hunt
+
+Dois botões novos no ☰ Opções pra quem farma e quer a tela limpa:
+
+- **👁 Esconder** abre uma janelinha com caixas de seleção. O que você marcar **some do jogo de todas as contas** (a lista é igual pra todo mundo). As opções:
+  - **🎛 Todas as janelas do jogo** — menu de cima, equipe (F1–F6), buffs, notificações, CP/Mark/Mercado e a barra do treinador
+  - **💬 Chat** — a janela de conversa
+  - **⏱ Janela de hunt** — o quadro com o nome da hunt e o tempo
+  - **☰ Menu de ícones** — a barra de ícones do topo
+  - **⚔ Combat (modo batalha)** — o aviso do modo batalha
+  - O que esconder **fica escondido mesmo trocando de tela**: o app reaplica sozinho. Pra ver de novo, é só desmarcar. Tudo que foi escondido usa *esconder* (não apaga) e **volta na hora** ao desmarcar, sem recarregar o jogo.
+- **🎯 Hunt** liga uma pílula por cima de cada painel mostrando **o que a conta está farmando e o tempo**: ex.: `🎯 Praia Slowpoke 49:01`. Se a conta não está caçando, aparece `🎯 sem hunt`. Ela atualiza sozinha a cada poucos segundos e não atrapalha os cliques no jogo.
+
+> Dica: dá pra combinar — esconder quase tudo com o 👁 e deixar só a pílula 🎯 pra acompanhar a hunt sem poluição.
 
 ## Os painéis
 

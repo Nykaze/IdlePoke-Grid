@@ -71,8 +71,9 @@ Pronto. Entre ou crie uma conta em cada painel e, em "Treinadores", salve o logi
 - **5 temas de cor** (violeta, azul, verde, rosa, âmbar), trocáveis no menu.
 - **Distintivo na bandeja** com o número de contas fora do ar, pra ver de relance sem abrir a janela.
 - Modo Eco que segura o uso de CPU sem atrapalhar o progresso.
-- Esconde o chat e o menu de ícones do jogo pra sobrar tela.
-- Avisa por notificação quando uma conta cai ou fica sem pokébola.
+- **Esconde elementos do jogo** (chat, janelas, menu de ícones, combat) com caixas no menu, valendo para todas as contas.
+- **Pílula de hunt** por cima de cada painel com o que a conta está farmando e há quanto tempo.
+- Avisa por notificação quando uma conta cai.
 - Liga e desliga cada painel, zoom, expandir, renomear e atalhos de teclado.
 - Bandeja, iniciar junto com o Windows e idioma português, inglês ou espanhol.
 

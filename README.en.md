@@ -69,8 +69,9 @@ That is it. Log in or create an account in each panel and, under "Treinadores" (
 - **5 accent themes** (violet, blue, green, pink, amber), switchable from the menu.
 - **Tray badge** showing how many accounts are down, visible at a glance.
 - Eco mode that keeps CPU use down without hurting progress.
-- Hides the chat and the game icon menu to free up screen.
-- Notifies you when an account drops or runs out of Pokéballs.
+- **Hide game elements** (chat, windows, icon menu, combat) with checkboxes in the menu, applied to every account.
+- **Hunt pill** over each panel showing what the account is farming and for how long.
+- Notifies you when an account drops.
 - Turn each panel on or off, zoom, expand, rename and keyboard shortcuts.
 - Tray, start with Windows, and Portuguese, English or Spanish.
 
